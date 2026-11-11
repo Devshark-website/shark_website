@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHARK Shop - Admin</title>
+<meta name="theme-color" content="#2a1a8c">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/webp" href="assets/shark.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="admin">
+<canvas id="bg"></canvas>
+<div class="aurora"></div>
+
+<div class="app">
+  <main class="wrap">
+    <section id="admWrap"></section>
+  </main>
+</div>
+
+<!-- lightbox ดูรูปสลิป -->
+<div class="lightbox" id="lb"><img id="lbImg" alt=""></div>
+
+<!-- modal แก้ไขสินค้า / เติมโค้ดสต็อก -->
+<div class="modal" id="mProd">
+  <div class="box wide">
+    <button class="x" data-close>&times;</button>
+    <h3 id="mpTitle"></h3>
+    <div id="mpBody"></div>
+  </div>
+</div>
+
+<!-- modal แก้ไขหมวดหมู่ -->
+<div class="modal" id="mCat">
+  <div class="box">
+    <button class="x" data-close>&times;</button>
+    <h3 id="mcTitle"></h3>
+    <div id="mcBody"></div>
+  </div>
+</div>
+
+<!-- modal แชทลูกค้าแบบเต็มจอ (Full Chat View) -->
+<div class="modal" id="mFullChat">
+  <div class="box wide" style="max-width:840px;display:flex;flex-direction:column;height:86vh;max-height:86vh;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));display:grid;place-items:center;font-weight:700;font-size:1.2rem;color:#fff" id="fcAvatar">💬</div>
+        <div>
+          <h3 id="fcTitle" style="margin:0;font-size:1.2rem"></h3>
+          <small class="mute" id="fcSub"></small>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button type="button" class="btn xs danger" id="fcDelAllBtn">🗑️ ลบประวัติแชทคนนี้</button>
+        <button class="x" data-close style="position:static;font-size:1.8rem">&times;</button>
+      </div>
+    </div>
+    <div id="fcMessages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:rgba(5,3,25,0.45);border-radius:14px;border:1px solid var(--line);margin-bottom:12px">
+    </div>
+    <form id="fcForm" style="display:flex;gap:10px;align-items:center;margin-top:auto">
+      <input class="inp" id="fcInp" style="flex:1;padding:11px 14px" placeholder="พิมพ์ข้อความตอบกลับลูกค้า..." autocomplete="off">
+      <button class="btn ok" type="submit" id="fcSendBtn">ส่งข้อความ</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/core.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

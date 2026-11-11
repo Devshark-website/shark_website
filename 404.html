@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>404 - SHARK Shop</title>
+<link rel="icon" type="image/webp" href="assets/shark.webp">
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#120a45;color:#fff;font-family:Kanit,Sarabun,sans-serif;text-align:center}
+h1{font-size:72px;margin:0;color:#38e8ff}a{display:inline-block;margin-top:18px;padding:12px 26px;border-radius:999px;background:#38e8ff;color:#120a45;text-decoration:none;font-weight:700}
+</style>
+</head>
+<body><div><h1>404</h1><p>ไม่พบหน้านี้ / Page not found</p>
+<!-- ใช้ path แบบสัมพัทธ์จากตำแหน่งรีโป เพื่อรองรับทั้ง user.github.io และ user.github.io/repo/ -->
+<a id="home" href="/">กลับหน้าร้าน / Back to shop</a></div>
+<script>
+/* ถ้าใช้แบบ user.github.io/ชื่อรีโป/ ระบบจะหาโฟลเดอร์รีโปให้เอง
+   ถ้าใช้โดเมนหลัก (username.github.io หรือโดเมนที่ตั้งเอง) ให้ตั้ง BASE = '/'
+   Set BASE manually ('/' or '/repo/') to override auto-detect. */
+(function () {
+  var BASE = null;
+  if (BASE === null) {
+    var seg = location.pathname.split('/').filter(Boolean), gh = /\.github\.io$/.test(location.hostname);
+    var userSite = gh && location.hostname.split('.')[0].toLowerCase() === (seg[0] || '').toLowerCase();
+    BASE = (gh && seg.length > 1 && !userSite) ? '/' + seg[0] + '/' : '/';
+  }
+  document.getElementById('home').href = BASE;
+})();
+</script>
+</body></html>

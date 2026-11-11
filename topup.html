@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHARK Shop - Top-up</title>
+<meta name="theme-color" content="#2a1a8c">
+<link rel="icon" type="image/webp" href="assets/shark.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="topup">
+<canvas id="bg"></canvas>
+<div class="aurora"></div>
+
+<div class="app">
+  <main class="wrap">
+    <section>
+      <div class="sh"><div><h2 data-i18n="topT">เติมเงินเข้าระบบ</h2><div class="sub" data-i18n="topS"></div></div></div>
+      <div id="topBody"></div>
+    </section>
+
+    <section id="recentSec" class="hide">
+      <div class="sh"><div><h2 data-i18n="myTopups">รายการเติมเงินล่าสุด</h2></div></div>
+      <div class="panel" id="recentBody" style="padding:0;overflow:hidden"></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/promptpay.js"></script>
+<script src="js/core.js"></script>
+<script>
+(function () {
+  var $ = App.$, $$ = App.$$, esc = App.esc, money = App.money, t = I18N.t, CFG = window.SHOP_CONFIG;
+  var amt = Number(App.qs('amt')) || CFG.presets[0] || 100;
+  var meth = (CFG.methods && CFG.methods[0]) || 'promptpay';
+  var slipFile = null, slipUrl = '';
+
+  function draw() {
+    var box = $('#topBody');
+    if (!App.user) { $('#recentSec').classList.add('hide'); return App.lock(box); }
+    var bal = (App.profile && App.profile.balance) || 0;
+    var chips = (CFG.presets || [50, 100, 300, 500, 1000]).map(function (a) {
+      return '<button type="button" class="opt' + (amt === a ? ' on' : '') + '" data-amt="' + a + '">' + money(a) + '</button>';
+    }).join('');
+    var meths = (CFG.methods || ['promptpay', 'truemoney']).map(function (m) {
+      var sub = m === 'promptpay' ? (CFG.promptpay && CFG.promptpay.id) : (CFG.truemoney && CFG.truemoney.phone);
+      return '<button type="button" class="opt' + (meth === m ? ' on' : '') + '" data-meth="' + esc(m) + '"><span>' + esc(t('m_' + m)) + '</span><small>' + esc(sub || '') + '</small></button>';
+    }).join('');
+
+    var u = App.profile || {};
+    var banBanner = u.banned ? '<div class="panel" style="margin-bottom:18px;border-color:rgba(255,93,143,.6);background:rgba(255,93,143,.08)">' +
+        '<h3 style="color:var(--bad);margin:0 0 6px">' + esc(t('bannedT')) + '</h3>' +
+        '<p class="mute" style="margin:0;line-height:1.6">' + esc(t('bannedS')) + '</p>' +
+        (u.ban_reason ? '<p style="margin:8px 0 0"><b>' + esc(t('banReason')) + ':</b> ' + esc(u.ban_reason) + '</p>' : '') +
+      '</div>' : '';
+
+    box.innerHTML = banBanner + '<div class="two">' +
+      '<div class="panel">' +
+        '<div class="pr"><span class="mute">' + esc(t('balance')) + '</span><div class="walletbig">' + money(bal) + ' <small style="font-size:1rem">' + esc(t('baht')) + '</small></div></div>' +
+        '<div class="info" style="margin-top:12px">🎮 <b>สำหรับการเติมเกมที่ใช้ UID:</b> เมื่อเติมเงินเข้าระบบแล้ว ให้เลือกแพ็กเติมเกมที่ต้องการ ระบบจะให้<b>กรอก UID ตอนกดเติมเกมแต่ละครั้ง</b> (ไม่ต้องกรอกแบบถาวร) <a href="category.html?c=topup" style="text-decoration:underline;margin-left:4px">ไปหน้าเติมเกม &rarr;</a></div>' +
+        '<label class="lab">' + esc(t('amount')) + ' (' + esc(t('baht')) + ')</label><div class="chips">' + chips + '</div>' +
+        '<label class="lab" for="tAmt">' + esc(t('custom')) + ' (' + CFG.minTopup + ' - ' + money(CFG.maxTopup) + ')</label>' +
+        '<input class="inp" id="tAmt" type="number" min="' + CFG.minTopup + '" max="' + CFG.maxTopup + '" value="' + (amt || '') + '">' +
+        '<label class="lab">' + esc(t('method')) + '</label><div class="meth">' + meths + '</div>' +
+      '</div>' +
+      '<div class="panel" id="payPane"></div>' +
+    '</div>';
+
+    $$('[data-amt]').forEach(function (b) { b.onclick = function () {
+      amt = Number(b.dataset.amt); $('#tAmt').value = amt;
+      $$('[data-amt]').forEach(function (x) { x.classList.toggle('on', x === b); });
+      drawPayPane();
+    }; });
+    $('#tAmt').oninput = function () {
+      amt = Number(this.value) || 0;
+      $$('[data-amt]').forEach(function (x) { x.classList.toggle('on', Number(x.dataset.amt) === amt); });
+      drawPayPane();
+    };
+    $$('[data-meth]').forEach(function (b) { b.onclick = function () {
+      meth = b.dataset.meth;
+      $$('[data-meth]').forEach(function (x) { x.classList.toggle('on', x === b); });
+      drawPayPane();
+    }; });
+
+    drawPayPane();
+    loadRecent();
+  }
+
+  function drawPayPane() {
+    var p = $('#payPane'); if (!p) return;
+    var validAmt = amt >= CFG.minTopup && amt <= CFG.maxTopup;
+    if (!validAmt) {
+      p.innerHTML = '<div class="lock"><p>' + esc(t('errAmt')) + ' ' + CFG.minTopup + ' - ' + money(CFG.maxTopup) + ' ' + esc(t('baht')) + '</p></div>';
+      return;
+    }
+    var h = '<h3>' + esc(t('m_' + meth)) + ' &mdash; <span style="color:var(--cyan)">' + money(amt) + ' ' + esc(t('baht')) + '</span></h3>';
+    if (meth === 'promptpay') {
+      var pp = CFG.promptpay || {};
+      var qrImg = pp.qrImage || 'assets/promptpay-qr.jpg';
+      h += '<p class="mute" style="margin:6px 0">' + esc(t('ppStep')) + '</p>' +
+        '<div class="qrbox">' +
+          '<img id="qrImg" src="' + esc(qrImg) + '" alt="PromptPay QR" style="width:240px;max-width:100%;border-radius:14px;display:block;margin:0 auto 10px;background:#fff;padding:6px">' +
+          '<div><b>' + esc(pp.name || 'ศุภกร สายเเวว') + '</b></div>' +
+          '<div class="mute" style="margin-top:2px">เบอร์พร้อมเพย์: <b>' + esc(pp.id || '0661612417') + '</b></div>' +
+          '<div class="cta" style="justify-content:center;margin-top:8px">' +
+            '<button type="button" class="btn xs ghost" data-cp="' + esc(pp.id || '0661612417') + '">' + esc(t('copy')) + ' เบอร์</button>' +
+            '<a class="btn xs ghost" id="saveQr" href="' + esc(qrImg) + '" download="promptpay-0661612417.jpg">' + esc(t('saveQr')) + '</a>' +
+          '</div>' +
+        '</div>';
+    } else {
+      var tm = CFG.truemoney || {};
+      var rawPhone = String(tm.phone || '0661612417').replace(/\D/g, '') || '0661612417';
+      h += '<p class="mute" style="margin:6px 0">' + esc(t('tmStep')) + '</p>' +
+        '<div class="copyrow"><div><small class="mute">' + esc(tm.name || 'ศุภกร สายเเวว') + '</small><div><b>' + esc(tm.phone || '066-161-2417') + '</b></div></div>' +
+        '<button type="button" class="btn xs ghost" data-cp="' + esc(rawPhone) + '">' + esc(t('copy')) + '</button></div>';
+    }
+
+    h += '<label class="lab">' + esc(t('slip')) + ' *</label>' +
+      '<div class="upload-zone">' +
+        '<input id="tSlip" type="file" accept="image/*">' +
+        '<b>📁 แตะเพื่อเลือกรูปสลิปโอนเงิน (รองรับคอมและมือถือ)</b>' +
+        '<small>เลือกไฟล์รูปสลิปจากเครื่องหรืออัลบั้มรูปในโทรศัพท์ได้เลย</small>' +
+      '</div>' +
+      '<img id="sPrev" class="preview' + (slipUrl ? '' : ' hide') + '" src="' + esc(slipUrl) + '" alt="">' +
+      '<label class="lab" for="tRef">' + esc(t(meth === 'truemoney' ? 'tmLink' : 'ref')) + '</label>' +
+      '<input class="inp" id="tRef" maxlength="260" placeholder="' + esc(meth === 'truemoney' ? 'เลขอ้างอิง หรือ https://gift.truemoney.com/campaign/?v=...' : '') + '">' +
+      '<p class="hint" style="margin-top:10px">' + esc(t('topNote')) + '</p>' +
+      '<div class="msg" id="tMsg"></div>' +
+      '<button type="button" class="btn" id="tGo" style="width:100%;margin-top:10px">' + esc(t('topGo')) + '</button>';
+    p.innerHTML = h;
+
+    $$('[data-cp]', p).forEach(function (b) { b.onclick = function () { App.copy(b.dataset.cp); }; });
+    if ($('#tSlip')) $('#tSlip').onchange = function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      slipFile = f; if (slipUrl) URL.revokeObjectURL(slipUrl); slipUrl = URL.createObjectURL(f);
+      $('#sPrev').src = slipUrl; $('#sPrev').classList.remove('hide');
+    };
+    $('#tGo').onclick = submitTopup;
+  }
+
+  function submitTopup() {
+    var msg = $('#tMsg'), btn = $('#tGo'), ref = ($('#tRef') && $('#tRef').value.trim()) || '';
+    msg.className = 'msg'; msg.textContent = '';
+    if (amt < CFG.minTopup || amt > CFG.maxTopup) { msg.textContent = t('errAmt') + ' ' + CFG.minTopup + ' - ' + money(CFG.maxTopup); return; }
+    if (!slipFile) { msg.textContent = t('E_NEED_SLIP'); return; }
+
+    btn.disabled = true;
+    msg.className = 'msg ok'; msg.textContent = t('uploading');
+    App.resize(slipFile, 1280, 0.84).then(function (blob) {
+      var ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+      var path = App.user.id + '/' + App.rid() + '.' + ext;
+      return App.sb.storage.from('slips').upload(path, blob, { contentType: blob.type }).then(function (r) {
+        if (r.error) throw r.error;
+        return path;
+      });
+    }).then(function (path) {
+      return App.sb.rpc('request_topup', { p_amount: amt, p_method: meth, p_ref: ref, p_slip: path, p_uid: '' });
+    }).then(function (r) {
+      btn.disabled = false;
+      if (r.error) { msg.className = 'msg'; msg.textContent = App.err(r.error); return; }
+      slipFile = null; if (slipUrl) { URL.revokeObjectURL(slipUrl); slipUrl = ''; }
+      if ($('#tRef')) $('#tRef').value = '';
+      if ($('#tSlip')) $('#tSlip').value = '';
+      if ($('#sPrev')) $('#sPrev').classList.add('hide');
+      msg.className = 'msg ok'; msg.textContent = t('okPend');
+      App.toast(t('okPend'));
+      App.refreshProfile();
+      loadRecent();
+    }).catch(function (e) {
+      btn.disabled = false; msg.className = 'msg'; msg.textContent = App.err(e);
+    });
+  }
+
+  function loadRecent() {
+    if (!App.user) return;
+    App.sb.from('topups').select('*').eq('user_id', App.user.id).order('created_at', { ascending: false }).limit(10).then(function (r) {
+      var list = (r && r.data) || [], sec = $('#recentSec'), box = $('#recentBody');
+      sec.classList.toggle('hide', !list.length);
+      if (!list.length) return;
+      var h = '<div class="hrow hd"><span>' + esc(t('hTime')) + '</span><span>' + esc(t('method')) + '</span><span>' + esc(t('hDetail')) + '</span><span>' + esc(t('hAmt')) + '</span><span>' + esc(t('hSt')) + '</span></div>';
+      h += list.map(function (x) {
+        var det = x.note || x.ref || '';
+        return '<div class="hrow"><span>' + esc(App.fmtTime(x.created_at)) + '</span><span>' + esc(t('m_' + x.method)) + '</span>' +
+          '<span class="mute">' + esc(det || '-') + '</span>' +
+          '<span class="' + (x.amount >= 0 ? 'plus' : 'minus') + '">' + (x.amount >= 0 ? '+' : '') + money(x.amount) + '</span>' +
+          '<span>' + App.statusTag(x.status, 'topup') + '</span></div>';
+      }).join('');
+      box.innerHTML = h;
+    });
+  }
+
+  App.start(function () {
+    draw();
+    App.on('auth', draw);
+    App.on('profile', draw);
+    App.on('topup', loadRecent);
+    App.on('lang', function () { I18N.apply(); draw(); });
+  });
+})();
+</script>
+</body>
+</html>

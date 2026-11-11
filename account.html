@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHARK Shop - My Account</title>
+<meta name="theme-color" content="#2a1a8c">
+<link rel="icon" type="image/webp" href="assets/shark.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="account">
+<canvas id="bg"></canvas>
+<div class="aurora"></div>
+
+<div class="app">
+  <main class="wrap">
+    <section id="accWrap"></section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/core.js"></script>
+<script>
+(function () {
+  var $ = App.$, $$ = App.$$, esc = App.esc, money = App.money, t = I18N.t;
+  var tab = App.qs('tab') || 'orders', orders = [], topups = [];
+
+  function load() {
+    var w = $('#accWrap');
+    if (!App.user || !App.profile) return App.lock(w);
+    Promise.all([
+      App.sb.from('orders').select('*').eq('user_id', App.user.id).order('created_at', { ascending: false }).limit(100),
+      App.sb.from('topups').select('*').eq('user_id', App.user.id).order('created_at', { ascending: false }).limit(100)
+    ]).then(function (r) {
+      orders = (r[0] && r[0].data) || [];
+      topups = (r[1] && r[1].data) || [];
+      draw();
+    });
+  }
+
+  function askDeleteMyAccount() {
+    var bal = Number((App.profile && App.profile.balance) || 0);
+    if (!confirm(t('delMyAccQ') + (bal > 0 ? '\n\n' + t('delBalWarn').replace('{b}', money(bal)) : ''))) return;
+    App.sb.rpc('delete_my_account').then(function (r) {
+      if (r && r.error) return App.toast(App.err(r.error), true);
+      App.sb.auth.signOut().then(function () {
+        App.toast(t('accDeleted'));
+        setTimeout(function () { location.href = 'index.html'; }, 600);
+      });
+    });
+  }
+
+  function draw() {
+    var w = $('#accWrap');
+    if (!App.user || !App.profile) return App.lock(w);
+    var u = App.profile;
+    var tabs = [['orders', 'tOrders'], ['topups', 'tTopups'], ['sec', 'tSec']].map(function (x) {
+      return '<button type="button" class="tab' + (tab === x[0] ? ' on' : '') + '" data-tab="' + x[0] + '">' + esc(t(x[1])) + '</button>';
+    }).join('');
+
+    var discBadge = (u.discord_username || u.discord_id)
+      ? '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:rgba(88,101,242,.15);border:1px solid rgba(88,101,242,.3);color:#818cf8;padding:4px 10px;border-radius:8px;font-size:.82rem;font-weight:600">' +
+          (u.discord_avatar ? '<img src="' + esc(u.discord_avatar) + '" style="width:18px;height:18px;border-radius:50%;object-fit:cover">' : '') +
+          '<span>🎮 Discord: @' + esc(u.discord_username || u.discord_id) + '</span>' +
+        '</div>'
+      : '';
+
+    w.innerHTML = (u.banned ? '<div class="panel" style="margin-bottom:18px;border-color:rgba(255,93,143,.6);background:rgba(255,93,143,.08)">' +
+        '<h3 style="color:var(--bad);margin:0 0 6px">' + esc(t('bannedT')) + '</h3>' +
+        '<p class="mute" style="margin:0;line-height:1.6">' + esc(t('bannedS')) + '</p>' +
+        (u.ban_reason ? '<p style="margin:8px 0 0"><b>' + esc(t('banReason')) + ':</b> ' + esc(u.ban_reason) + '</p>' : '') +
+        (u.banned_at ? '<small class="mute">' + esc(App.fmtTime(u.banned_at)) + '</small>' : '') +
+      '</div>' : '') +
+      '<div class="panel" style="margin-bottom:24px">' +
+      '<div class="sh" style="margin:0;align-items:center">' +
+        '<div><span class="tag">' + esc(App.user.email || '') + '</span><h2 style="padding-left:0">' + esc(u.username) + '</h2>' +
+        discBadge +
+        '<div style="margin-top:4px"><small class="mute">' + esc(t('memberSince')) + ': ' + esc(App.fmtTime(u.created_at)) + '</small></div></div>' +
+        '<div style="text-align:right"><div class="mute">' + esc(t('balance')) + '</div><div class="walletbig">' + money(u.balance) + ' <small style="font-size:1rem">' + esc(t('baht')) + '</small></div>' +
+        '<div class="cta" style="margin-top:10px;justify-content:flex-end">' +
+          '<a class="btn sm" href="topup.html">' + esc(t('nTopup')) + '</a>' +
+          (u.is_admin ? '<a class="btn sm ghost" href="admin.html">' + esc(t('nAdmin')) + '</a>' : '') +
+          '<button type="button" class="btn sm ghost" id="loBtn">' + esc(t('logout')) + '</button>' +
+          '<button type="button" class="btn sm danger" id="delAccTopBtn">' + esc(t('delMyAcc')) + '</button>' +
+        '</div></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="tabs">' + tabs + '</div>' +
+      '<div id="tabBody"></div>';
+
+    $('#loBtn').onclick = function () { App.logout(); };
+    $('#delAccTopBtn').onclick = askDeleteMyAccount;
+    $$('[data-tab]').forEach(function (b) { b.onclick = function () { tab = b.dataset.tab; draw(); }; });
+    drawTab();
+  }
+
+  function drawTab() {
+    var b = $('#tabBody'); if (!b) return;
+    if (tab === 'orders') {
+      if (!orders.length) { b.innerHTML = '<div class="panel lock">' + esc(t('noOrders')) + '</div>'; return; }
+      b.innerHTML = '<div class="panel" style="padding:0;overflow:hidden">' + orders.map(function (o) {
+        var nm = I18N.pick(o.product_name) || '-';
+        return '<div class="ocard"><div class="top">' +
+          '<div><b>' + esc(nm) + ' &times; ' + o.qty + '</b> <span class="mute">&middot; ' + esc(App.fmtTime(o.created_at)) + '</span></div>' +
+          '<div><span class="minus" style="margin-right:10px">-' + money(o.total) + ' ' + esc(t('baht')) + '</span>' + App.statusTag(o.status, 'order') + '</div></div>' +
+          (o.customer_input ? '<div class="mute" style="font-size:.9rem">' + esc(t('yourInput')) + ': <b style="color:var(--cyan)">' + esc(o.customer_input) + '</b></div>' : '') +
+          (o.delivered ? '<div><small class="mute">' + esc(t('delivered')) + '</small>' + App.renderDelivered(o.delivered) + '</div>' : '') +
+        '</div>';
+      }).join('') + '</div>';
+      App.bindDeliveredCopy(b);
+    } else if (tab === 'topups') {
+      if (!topups.length) { b.innerHTML = '<div class="panel lock">' + esc(t('noTopups')) + '</div>'; return; }
+      var h = '<div class="panel" style="padding:0;overflow:hidden"><div class="hrow hd"><span>' + esc(t('hTime')) + '</span><span>' + esc(t('method')) + '</span><span>' + esc(t('hDetail')) + '</span><span>' + esc(t('hAmt')) + '</span><span>' + esc(t('hSt')) + '</span></div>';
+      h += topups.map(function (x) {
+        var det = x.note || x.ref || '';
+        return '<div class="hrow"><span>' + esc(App.fmtTime(x.created_at)) + '</span><span>' + esc(t('m_' + x.method)) + '</span>' +
+          '<span class="mute">' + esc(det || '-') + '</span>' +
+          '<span class="' + (x.amount >= 0 ? 'plus' : 'minus') + '">' + (x.amount >= 0 ? '+' : '') + money(x.amount) + '</span>' +
+          '<span>' + App.statusTag(x.status, 'topup') + '</span></div>';
+      }).join('') + '</div>';
+      b.innerHTML = h;
+    } else {
+      b.innerHTML = '<div class="two">' +
+        '<form class="panel" id="pwForm" novalidate><h3>' + esc(t('secT')) + '</h3><p class="mute" style="margin:4px 0 10px">' + esc(t('secS')) + '</p>' +
+          '<label class="lab" for="curP">' + esc(t('curPass')) + '</label><input class="inp" id="curP" type="password" autocomplete="current-password">' +
+          '<label class="lab" for="newP">' + esc(t('newPass')) + '</label><input class="inp" id="newP" type="password" autocomplete="new-password">' +
+          '<label class="lab" for="newP2">' + esc(t('pass2')) + '</label><input class="inp" id="newP2" type="password" autocomplete="new-password">' +
+          '<div class="capw"><small class="hint">' + esc(t('capHint')) + '</small><div id="secCap" class="cap"></div></div>' +
+          '<div class="msg" id="pwMsg"></div>' +
+          '<button class="btn" id="pwGo" type="submit" style="margin-top:10px">' + esc(t('resetGo')) + '</button></form>' +
+        '<div style="display:grid;gap:20px;align-content:start">' +
+          '<div class="panel"><h3>' + esc(t('secForgotT')) + '</h3><p class="mute" style="margin:8px 0 18px;line-height:1.6">' + esc(t('secForgotS')) + '</p>' +
+            '<div class="copyrow"><span class="mute">' + esc(t('email')) + '</span><b>' + esc(App.user.email || '') + '</b></div>' +
+            '<button type="button" class="btn ghost" id="otpReset" style="margin-top:12px">' + esc(t('sendCode')) + '</button></div>' +
+          '<div class="panel" style="border-color:rgba(255,93,143,.45)">' +
+            '<h3 style="color:var(--bad)">' + esc(t('delMyAcc')) + '</h3>' +
+            '<p class="mute" style="margin:8px 0 16px;line-height:1.6">' + esc(t('delMyAccS')) + '</p>' +
+            '<button type="button" class="btn danger" id="delAccBtn">' + esc(t('delMyAcc')) + '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+      var cap = App.captcha($('#secCap'));
+      $('#otpReset').onclick = function () { App.openReset(App.user.email || ''); };
+      $('#delAccBtn').onclick = askDeleteMyAccount;
+      $('#pwForm').onsubmit = function (e) {
+        e.preventDefault();
+        var cur = $('#curP').value, np = $('#newP').value, np2 = $('#newP2').value, msg = $('#pwMsg'), btn = $('#pwGo');
+        msg.className = 'msg'; msg.textContent = '';
+        if (!cur) { msg.textContent = t('errCurPass'); return; }
+        if (np.length < 8) { msg.textContent = t('errPass'); return; }
+        if (np !== np2) { msg.textContent = t('errMatch'); return; }
+        if (!cap.ok()) { msg.textContent = t('errCaptcha'); return; }
+        btn.disabled = true;
+        App.sb.auth.signInWithPassword({ email: App.user.email, password: cur, options: { captchaToken: cap.token || undefined } }).then(function (r) {
+          cap.reset();
+          if (r.error) { btn.disabled = false; msg.textContent = r.error.code === 'invalid_credentials' ? t('errCurPass') : App.err(r.error); return; }
+          return App.sb.auth.updateUser({ password: np }).then(function (r2) {
+            btn.disabled = false;
+            if (r2.error) { msg.textContent = App.err(r2.error); return; }
+            $('#curP').value = $('#newP').value = $('#newP2').value = '';
+            msg.className = 'msg ok'; msg.textContent = t('okPassChanged');
+            App.toast(t('okPassChanged'));
+          });
+        });
+      };
+    }
+  }
+
+  App.start(function () {
+    load();
+    App.on('auth', load);
+    App.on('profile', draw);
+    App.on('order', load);
+    App.on('topup', load);
+    App.on('lang', function () { I18N.apply(); draw(); });
+  });
+})();
+</script>
+</body>
+</html>

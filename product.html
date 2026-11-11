@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHARK Shop - Product</title>
+<meta name="theme-color" content="#2a1a8c">
+<link rel="icon" type="image/webp" href="assets/shark.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="product">
+<canvas id="bg"></canvas>
+<div class="aurora"></div>
+
+<div class="app">
+  <main class="wrap">
+    <nav class="crumbs" id="crumbs"></nav>
+    <div id="pWrap"></div>
+
+    <section id="relSec" class="hide">
+      <div class="sh"><h2 data-i18n="related">สินค้าในหมวดเดียวกัน</h2></div>
+      <div class="grid" id="relGrid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- lightbox ขยายรูปตัวอย่างสินค้า -->
+<div class="lightbox" id="lb"><img id="lbImg" alt=""></div>
+
+<!-- ยืนยันการซื้อ / แสดงบัญชีที่ได้รับ -->
+<div class="modal" id="mBuy">
+  <div class="box">
+    <button class="x" data-close>&times;</button>
+    <h3 id="bTitle"></h3>
+    <div id="bBody"></div>
+    <div class="msg" id="bMsg"></div>
+    <div class="cta" id="bFoot" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/core.js"></script>
+<script>
+(function () {
+  var $ = App.$, $$ = App.$$, esc = App.esc, nm = App.nm, money = App.money, t = I18N.t;
+  var id = App.qs('id') || '', prod = null, cat = null, rel = [], imgIdx = 0, qty = 1, uInput = '';
+
+  function needsUidInput() {
+    if (!prod) return false;
+    return !!(prod.input_label || (cat && cat.slug === 'topup' && prod.delivery === 'manual'));
+  }
+
+  function uidLabelText() {
+    if (prod && prod.input_label) return prod.input_label;
+    return t('uidPerOrderLabel');
+  }
+
+  function load() {
+    if (!id) { drawEmpty(); return; }
+    Promise.all([
+      App.categories(),
+      App.sb.from('shop_products').select('*').eq('id', id).maybeSingle()
+    ]).then(function (r) {
+      var cats = r[0] || [];
+      prod = r[1] && r[1].data;
+      if (!prod) { drawEmpty(); return; }
+      cat = cats.filter(function (c) { return c.id === prod.category_id; })[0] || null;
+      draw();
+      return App.sb.from('shop_products').select('*').eq('category_id', prod.category_id).neq('id', prod.id).limit(4).then(function (r2) {
+        rel = (r2 && r2.data) || [];
+        drawRel();
+      });
+    });
+  }
+
+  function drawEmpty() {
+    $('#crumbs').innerHTML = '<a href="index.html">' + esc(t('nHome')) + '</a>';
+    $('#pWrap').innerHTML = '<div class="empty" style="margin:30px 0"><p>' + esc(t('noProd')) + '</p><a class="btn sm" style="margin-top:14px" href="index.html">' + esc(t('backHome')) + '</a></div>';
+  }
+
+  function imgs() {
+    var arr = (prod && prod.images && prod.images.filter(Boolean)) || [];
+    return arr.length ? arr : [App.ph(nm(prod))];
+  }
+
+  function draw() {
+    if (!prod) return;
+    var n = nm(prod), cName = cat ? nm(cat) : '', list = imgs();
+    if (imgIdx >= list.length) imgIdx = 0;
+    document.title = n + ' - ' + (SHOP_CONFIG.name || 'SHARK') + ' Shop';
+    $('#crumbs').innerHTML = '<a href="index.html">' + esc(t('nHome')) + '</a> <span>/</span> ' +
+      (cat ? '<a href="category.html?c=' + encodeURIComponent(cat.slug) + '">' + esc(cName) + '</a> <span>/</span> ' : '') +
+      '<span>' + esc(n) + '</span>';
+
+    var left = Number(prod.stock_left), out = left === 0, maxQ = left < 0 ? 20 : Math.min(20, Math.max(1, left));
+    if (qty > maxQ) qty = maxQ;
+    var stPill = out ? '<span class="pill bad">' + esc(t('soldOut')) + '</span>'
+      : '<span class="pill ok">' + esc(left < 0 ? t('unlimited') : t('left') + ' ' + left) + '</span>';
+    var autoTxt = prod.delivery === 'code'
+      ? (prod.credential_type === 'user_pass' ? '👤 ส่งอัตโนมัติ (ชื่อ + รหัส)' : '📧 ส่งอัตโนมัติ (อีเมล + รหัส)')
+      : t('manualDel');
+    var delPill = '<span class="pill">&#9889; ' + esc(autoTxt) + '</span>';
+    var soldPill = prod.sold > 0 ? '<span class="pill">' + esc(t('sold')) + ' ' + prod.sold + '</span>' : '';
+
+    var th = list.length > 1 ? '<div class="thumbs">' + list.map(function (u, i) {
+      return '<button type="button" class="' + (i === imgIdx ? 'on' : '') + '" data-idx="' + i + '"><img alt="" src="' + esc(u) + '"></button>';
+    }).join('') + '</div>' : '';
+
+    var inpHtml = '';
+    if (needsUidInput()) {
+      var lbl = uidLabelText();
+      inpHtml = '<label class="lab" for="pInp">🎮 ' + esc(lbl) + ' *</label>' +
+        '<input class="inp" id="pInp" maxlength="200" value="' + esc(uInput) + '" placeholder="กรอก ' + esc(lbl) + ' สำหรับการเติมเกมครั้งนี้...">' +
+        '<small class="hint">' + esc(t('uidPerOrderHint')) + '</small>';
+    }
+
+    $('#pWrap').innerHTML = '<div class="pview">' +
+      '<div class="gal"><div class="main" id="gMain"><img id="gImg" alt="' + esc(n) + '" src="' + esc(list[imgIdx]) + '"></div>' + th + '</div>' +
+      '<div class="pinfo">' +
+        (cat ? '<a class="tag" href="category.html?c=' + encodeURIComponent(cat.slug) + '">' + esc(cName) + '</a>' : '') +
+        '<h1>' + esc(n) + '</h1>' +
+        '<div class="pmeta">' + stPill + delPill + soldPill + '</div>' +
+        '<div class="pdesc">' + esc(nm(prod, 'desc')) + '</div>' +
+        '<div class="pbox">' +
+          '<div class="pr"><div><small class="mute">' + esc(t('price')) + '</small><div class="bigprice">' + money(prod.price) + ' <small>' + esc(t('baht')) + '</small></div></div>' +
+          '<div style="text-align:right"><small class="mute">' + esc(t('total')) + '</small><div class="price" id="pTot">' + money(prod.price * qty) + ' ' + esc(t('baht')) + '</div></div></div>' +
+          '<div class="qtyrow"><span class="mute" style="margin-right:auto">' + esc(t('qty')) + '</span>' +
+            '<button class="qbtn" type="button" id="qMinus">&minus;</button>' +
+            '<input class="qinp" id="qVal" type="number" min="1" max="' + maxQ + '" value="' + qty + '">' +
+            '<button class="qbtn" type="button" id="qPlus">+</button></div>' +
+          inpHtml +
+          '<button class="btn" id="buyBtn" style="width:100%;margin-top:16px"' + (out ? ' disabled' : '') + '>' + esc(t(out ? 'soldOut' : 'buy')) + '</button>' +
+        '</div>' +
+      '</div></div>';
+
+    $$('[data-idx]').forEach(function (b) { b.onclick = function () { imgIdx = Number(b.dataset.idx); draw(); }; });
+    $('#gMain').onclick = function () { $('#lbImg').src = list[imgIdx]; $('#lb').classList.add('open'); };
+    var setQ = function (v) { qty = Math.max(1, Math.min(maxQ, Number(v) || 1)); $('#qVal').value = qty; $('#pTot').textContent = money(prod.price * qty) + ' ' + t('baht'); };
+    $('#qMinus').onclick = function () { setQ(qty - 1); };
+    $('#qPlus').onclick = function () { setQ(qty + 1); };
+    $('#qVal').oninput = function () { setQ(this.value); };
+    if ($('#pInp')) $('#pInp').oninput = function () { uInput = this.value; };
+    $('#buyBtn').onclick = askBuy;
+  }
+
+  function drawRel() {
+    $('#relSec').classList.toggle('hide', !rel.length);
+    if (rel.length) { $('#relGrid').innerHTML = rel.map(App.card).join(''); if (window.FX) FX.reveal($('#relGrid')); }
+  }
+
+  function askBuy() {
+    if (!App.user) return App.needLogin();
+    var reqUid = needsUidInput(), lbl = uidLabelText();
+    if (reqUid && !uInput.trim()) {
+      App.toast(t('E_NEED_INPUT'), true);
+      if ($('#pInp')) $('#pInp').focus();
+      return;
+    }
+    var tot = prod.price * qty, bal = (App.profile && Number(App.profile.balance)) || 0, short = tot - bal;
+    $('#bTitle').textContent = t('confirmBuy');
+    $('#bMsg').textContent = '';
+    $('#bBody').innerHTML = '<div style="display:flex;gap:14px;align-items:center;margin:10px 0">' +
+      '<img src="' + esc(App.cover(prod)) + '" alt="" style="width:84px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid var(--line)">' +
+      '<div><h4>' + esc(nm(prod)) + ' &times; ' + qty + '</h4><div class="price">' + money(tot) + ' ' + esc(t('baht')) + '</div></div></div>' +
+      (reqUid ? '<div style="margin:10px 0"><label class="lab" for="mUidInp">🎮 ' + esc(lbl) + ' *</label><input class="inp" id="mUidInp" maxlength="200" value="' + esc(uInput.trim()) + '" placeholder="กรอก ' + esc(lbl) + ' สำหรับการเติมเกมครั้งนี้..."><small class="hint">' + esc(t('uidPerOrderHint')) + '</small></div>' : '') +
+      '<div class="copyrow"><span class="mute">' + esc(t('balance')) + '</span><b>' + money(bal) + ' ' + esc(t('baht')) + '</b></div>' +
+      (short > 0 ? '<div class="info" style="border-color:var(--bad);color:var(--bad)">' + esc(t('notEnough')) + ' <b>' + money(short) + ' ' + esc(t('baht')) + '</b></div>' : '');
+
+    if ($('#mUidInp')) {
+      $('#mUidInp').oninput = function () {
+        uInput = this.value;
+        if ($('#pInp')) $('#pInp').value = uInput;
+      };
+    }
+
+    if (short > 0) {
+      $('#bFoot').innerHTML = '<a class="btn" style="flex:1" href="topup.html?amt=' + Math.ceil(short) + '">' + esc(t('topupNow')) + '</a>' +
+        '<button class="btn ghost" data-close>' + esc(t('cancel')) + '</button>';
+    } else {
+      $('#bFoot').innerHTML = '<button class="btn" id="doBuy" style="flex:1">' + esc(t('confirm')) + '</button>' +
+        '<button class="btn ghost" data-close>' + esc(t('cancel')) + '</button>';
+      $('#doBuy').onclick = doBuy;
+    }
+    App.openM('mBuy');
+  }
+
+  function doBuy() {
+    var b = $('#doBuy');
+    var finalInput = ($('#mUidInp') ? $('#mUidInp').value : uInput).trim();
+    if (needsUidInput() && !finalInput) {
+      $('#bMsg').textContent = t('E_NEED_INPUT');
+      if ($('#mUidInp')) $('#mUidInp').focus();
+      return;
+    }
+    b.disabled = true; $('#bMsg').textContent = '';
+    App.sb.rpc('buy_product', { p_product: prod.id, p_qty: qty, p_input: finalInput }).then(function (r) {
+      b.disabled = false;
+      if (r.error) { $('#bMsg').textContent = App.err(r.error); return; }
+      var o = r.data;
+      /* ล้างค่า UID ทันทีหลังสั่งซื้อเสร็จ เพื่อไม่ให้ค้างแบบถาวร */
+      uInput = '';
+      if ($('#pInp')) $('#pInp').value = '';
+      if (window.FX) FX.confetti();
+      App.refreshProfile();
+      load();
+      $('#bTitle').textContent = t('buyOkT');
+      if (o.delivered) {
+        $('#bBody').innerHTML = '<p class="mute" style="margin:6px 0">' + esc(t('yourCode')) + '</p>' +
+          App.renderDelivered(o.delivered, prod.credential_type);
+        App.bindDeliveredCopy($('#bBody'));
+      } else {
+        $('#bBody').innerHTML = '<div class="info">' + esc(t('pendingDel')) +
+          (finalInput ? '<br><b>🎮 UID สำหรับออเดอร์นี้: ' + esc(finalInput) + '</b>' : '') + '</div>';
+      }
+      $('#bFoot').innerHTML = '<a class="btn" style="flex:1" href="account.html">' + esc(t('seeOrders')) + '</a>' +
+        '<button class="btn ghost" data-close>' + esc(t('close')) + '</button>';
+    });
+  }
+
+  $('#lb').onclick = function () { this.classList.remove('open'); };
+  App.start(function () {
+    load();
+    App.on('lang', function () { I18N.apply(); draw(); drawRel(); });
+    App.on('store_change', load);
+  });
+})();
+</script>
+</body>
+</html>

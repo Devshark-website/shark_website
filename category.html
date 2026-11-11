@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHARK Shop - Category</title>
+<meta name="theme-color" content="#2a1a8c">
+<link rel="icon" type="image/webp" href="assets/shark.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="category">
+<canvas id="bg"></canvas>
+<div class="aurora"></div>
+
+<div class="app">
+  <main class="wrap">
+    <nav class="crumbs"><a href="index.html" data-i18n="nHome"></a> <span>/</span> <span id="cCrumb"></span></nav>
+    <div class="tabs" id="catSwitch" style="margin-top:12px"></div>
+
+    <section style="padding-top:12px">
+      <div class="sh">
+        <div><h2 id="cTitle"></h2><div class="sub" id="cSub"></div></div>
+        <div class="tools">
+          <input class="search" id="q" data-i18n-ph="search">
+          <select class="sel" id="sort">
+            <option value="rec" data-i18n="sortRec"></option>
+            <option value="low" data-i18n="sortLow"></option>
+            <option value="high" data-i18n="sortHigh"></option>
+            <option value="pop" data-i18n="sortPop"></option>
+            <option value="new" data-i18n="sortNew"></option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/core.js"></script>
+<script>
+(function () {
+  var $ = App.$, esc = App.esc, nm = App.nm, t = I18N.t;
+  var slug = App.qs('c') || '', cats = [], cat = null, items = [], q = '', sort = 'rec';
+
+  function load() {
+    App.categories().then(function (cs) {
+      cats = cs;
+      cat = cs.filter(function (c) { return c.slug === slug; })[0] || cs[0] || null;
+      if (!cat) { draw(); return; }
+      slug = cat.slug;
+      return App.sb.from('shop_products').select('*').eq('category_id', cat.id).then(function (r) {
+        items = (r && r.data) || [];
+        draw();
+      });
+    });
+  }
+
+  function draw() {
+    /* ลิงก์สลับไปหน้าหมวดอื่น (แต่ละหมวดแยก URL เป็นของตัวเอง) */
+    $('#catSwitch').innerHTML = cats.map(function (c) {
+      return '<a class="tab' + (c.slug === slug ? ' on' : '') + '" href="category.html?c=' + encodeURIComponent(c.slug) + '">' + esc(nm(c)) + '</a>';
+    }).join('');
+    if (!cat) {
+      $('#cCrumb').textContent = t('noCat');
+      $('#cTitle').textContent = t('noCat');
+      $('#cSub').textContent = '';
+      $('#grid').innerHTML = '<div class="empty"><p>' + esc(t('noCat')) + '</p><a class="btn sm" style="margin-top:14px" href="index.html">' + esc(t('backHome')) + '</a></div>';
+      return;
+    }
+    var n = nm(cat);
+    document.title = n + ' - ' + (SHOP_CONFIG.name || 'SHARK') + ' Shop';
+    $('#cCrumb').textContent = n;
+    $('#cTitle').textContent = n;
+    $('#cSub').textContent = nm(cat, 'desc');
+
+    var kw = q.toLowerCase();
+    var list = items.filter(function (p) {
+      return !kw || (nm(p) + ' ' + nm(p, 'desc')).toLowerCase().indexOf(kw) > -1;
+    }).slice();
+    list.sort(function (a, b) {
+      if (sort === 'low') return a.price - b.price;
+      if (sort === 'high') return b.price - a.price;
+      if (sort === 'pop') return (b.sold || 0) - (a.sold || 0);
+      if (sort === 'new') return new Date(b.created_at) - new Date(a.created_at);
+      return (b.featured - a.featured) || (a.sort - b.sort);
+    });
+    $('#grid').innerHTML = list.length ? list.map(App.card).join('') : '<div class="empty">' + esc(t('noItems')) + '</div>';
+    if (window.FX) FX.reveal($('#grid'));
+  }
+
+  App.start(function () {
+    $('#q').oninput = function () { q = this.value.trim(); draw(); };
+    $('#sort').onchange = function () { sort = this.value; draw(); };
+    load();
+    App.on('lang', function () { I18N.apply(); draw(); });
+    App.on('store_change', load);
+  });
+})();
+</script>
+</body>
+</html>
