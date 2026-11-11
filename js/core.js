@@ -225,7 +225,7 @@
           '<button type="button" class="cchip" data-cq="me" data-i18n="qMyStatus"></button>' +
         '</div>' +
         '<div class="cbody" id="cBody"></div>' +
-        '<form class="cfoot" id="cForm"><input id="cInp" maxlength="500" autocomplete="off"><button class="btn sm" type="submit" data-i18n="send"></button></form>' +
+        '<form class="cfoot" id="cForm"><input id="cInp" maxlength="500" autocomplete="off"><button class="btn sm" type="submit" id="cSend" data-i18n="send"></button></form>' +
       '</div>' +
       '<div id="mate">' +
         '<div class="bub on" id="mateBub">' +
@@ -826,6 +826,7 @@
 
   function renderChat() {
     var box = $('#cBody'), inp = $('#cInp'), chips = $('#cChips'), cfoot = $('#cForm');
+    var sendBtn = $('#cSend') || (cfoot ? cfoot.querySelector('button[type="submit"]') : null);
     if (!box) return;
     $$('[data-cmode]').forEach(function (b) { b.classList.toggle('on', b.dataset.cmode === C.mode); });
     if (chips) chips.classList.toggle('hide', C.mode !== 'ai');
@@ -856,6 +857,17 @@
     }
     if (cfoot) {
       cfoot.classList.toggle('hide', C.mode === 'ticket' && !C.activeTicket);
+    }
+
+    var clearBtn = $('#chatClear');
+    if (clearBtn) {
+      if (C.mode === 'ticket') {
+        clearBtn.style.display = C.activeTicket ? 'inline-flex' : 'none';
+        clearBtn.textContent = 'ลบประวัติ Ticket';
+      } else {
+        clearBtn.style.display = 'inline-flex';
+        clearBtn.textContent = t('clearChat');
+      }
     }
 
     if (C.mode === 'ticket') {
@@ -1360,6 +1372,14 @@
     };
     if ($('#chatClear')) {
       $('#chatClear').onclick = function () {
+        if (C.mode === 'ticket') {
+          if (C.activeTicket) {
+            deleteActiveTicket();
+          } else {
+            toast('กรุณาเลือก Ticket ที่ต้องการลบประวัติ', true);
+          }
+          return;
+        }
         if (!confirm(t('clearChatQ'))) return;
         var curMode = C.mode;
         if (curMode === 'ai') C.aiMsgs = [];
