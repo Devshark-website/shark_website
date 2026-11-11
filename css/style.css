@@ -348,8 +348,8 @@ body.dev-mobile .bub{max-width:235px;padding:10px 13px}
 body.dev-mobile #chatWin{right:10px;bottom:154px;width:calc(100vw - 20px);height:min(480px,calc(100vh - 220px))}
 .chead{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(122,61,240,.28);border-bottom:1px solid var(--line)}
 .chead h4{font-family:'Kanit';font-size:1.02rem;margin:0;display:flex;align-items:center;gap:8px}
-.ctabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 12px;background:rgba(11,8,38,.55);border-bottom:1px solid var(--line)}
-.ctab{padding:7px 10px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--mute);font-family:'Kanit';font-size:.86rem;cursor:pointer;transition:.2s}
+.ctabs{display:grid;grid-template-columns:repeat(3, 1fr);gap:5px;padding:8px 10px;background:rgba(11,8,38,.55);border-bottom:1px solid var(--line)}
+.ctab{padding:7px 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--mute);font-family:'Kanit';font-size:.8rem;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:4px}
 .ctab.on{background:rgba(56,232,255,.16);border-color:var(--cyan);color:#fff;font-weight:600}
 .cchips{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;border-bottom:1px solid var(--line);scrollbar-width:none}
 .cchips::-webkit-scrollbar{display:none}
