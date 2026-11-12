@@ -466,6 +466,64 @@ body.dev-mobile #chatWin{right:10px;bottom:154px;width:calc(100vw - 20px);height
 @keyframes hop{30%{transform:translateY(-26px) scale(1.12) rotate(-8deg)}60%{transform:translateY(0) scale(.94)}100%{transform:none}}
 @keyframes cf{to{transform:translate(var(--dx),105vh) rotate(var(--r));opacity:.2}}
 @keyframes trl{to{transform:translateY(24px) scale(0);opacity:0}}
+@keyframes pulseGlow{0%{opacity:.45;transform:scale(.95)}100%{opacity:.85;transform:scale(1.06)}}
+@keyframes radarPulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(2.4);opacity:0}}
+
+/* Hero Badges & Mascot Cyber Ring Animation */
+.hero-badges{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:20px}
+.h-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:999px;background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(56,232,255,.25);font-size:.82rem;font-weight:600;color:var(--ink);backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.25);transition:all .25s cubic-bezier(.2,.8,.3,1)}
+.h-badge:hover{transform:translateY(-2px);border-color:var(--cyan);background:rgba(56,232,255,.12);color:#fff;box-shadow:0 6px 20px rgba(56,232,255,.25)}
+.h-badge svg{color:var(--cyan);flex-shrink:0}
+.art-glow{position:absolute;width:90%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(56,232,255,.38) 0%,rgba(166,107,255,.22) 50%,transparent 70%);filter:blur(38px);pointer-events:none;z-index:0;animation:pulseGlow 4.5s ease-in-out infinite alternate}
+.art-ring{position:absolute;width:104%;aspect-ratio:1;border-radius:50%;border:1.5px dashed rgba(56,232,255,.35);pointer-events:none;z-index:0;animation:spin 28s linear infinite}
+.art-ring::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:1px solid rgba(166,107,255,.3);animation:spin 18s linear infinite reverse}
+
+/* Discord Admin Live Roster on Status Card */
+.sc-admin-roster{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+.sc-roster-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.sc-roster-title{display:inline-flex;align-items:center;gap:7px;font-size:.88rem;font-weight:700;color:#fff}
+.sc-roster-title svg{color:var(--cyan);flex-shrink:0}
+.sc-roster-live{font-size:.74rem;color:var(--cyan);display:inline-flex;align-items:center;gap:6px;background:rgba(56,232,255,.1);border:1px solid rgba(56,232,255,.25);padding:2px 10px;border-radius:999px}
+.sc-admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sc-admin-card{display:flex;align-items:center;gap:11px;padding:9px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;cursor:pointer;transition:all .25s cubic-bezier(.2,.8,.3,1);position:relative;overflow:hidden}
+.sc-admin-card:hover{transform:translateY(-2px);border-color:rgba(56,232,255,.45);background:rgba(56,232,255,.08);box-shadow:0 8px 22px rgba(56,232,255,.18)}
+.sc-admin-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--cyan),var(--violet));opacity:0;transition:opacity .2s}
+.sc-admin-card:hover::before{opacity:1}
+.sc-admin-avatar-wrap{position:relative;width:40px;height:40px;flex-shrink:0}
+.sc-admin-avatar{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid rgba(56,232,255,.4)}
+.sc-admin-avatar-default{width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,rgba(56,232,255,.2),rgba(166,107,255,.2));border:2px solid rgba(56,232,255,.35);display:flex;align-items:center;justify-content:center;color:var(--cyan)}
+.sc-admin-status-dot{position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;border-radius:50%;border:2px solid #0f0b29}
+.sc-admin-status-dot.on{background:#10b981;box-shadow:0 0 8px #10b981}
+.sc-admin-status-dot.idle{background:#f59e0b;box-shadow:0 0 8px #f59e0b}
+.sc-admin-status-dot.dnd{background:#ef4444;box-shadow:0 0 8px #ef4444}
+.sc-admin-info{flex:1;min-width:0}
+.sc-admin-name{font-weight:700;font-size:.86rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-admin-handle{font-size:.72rem;color:var(--mute);font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-admin-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:6px;font-size:.68rem;font-weight:700;background:rgba(88,101,242,.22);color:#a5b4fc;border:1px solid rgba(88,101,242,.35);flex-shrink:0}
+.sc-admin-empty{grid-column:1 / -1;padding:16px 12px;text-align:center;color:var(--mute);font-size:.84rem;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.02);border-radius:10px;border:1px dashed rgba(255,255,255,.1)}
+.sc-admin-empty svg{color:var(--cyan);opacity:.8;flex-shrink:0}
+
+/* Global Enhanced Cyber & Neon Aesthetics */
+.card,.catcard{transition:transform .3s cubic-bezier(.2,.8,.3,1),border-color .3s,box-shadow .3s !important}
+.card:hover,.catcard:hover{transform:translateY(-5px) scale(1.01) !important;border-color:rgba(56,232,255,.45) !important;box-shadow:0 16px 36px rgba(0,0,0,.5),0 0 24px rgba(56,232,255,.2) !important}
+.card .thumb img,.catcard .thumb img{transition:transform .4s cubic-bezier(.2,.8,.3,1)}
+.card:hover .thumb img,.catcard:hover .thumb img{transform:scale(1.05)}
+
+/* Interactive glowing buttons */
+.btn{position:relative;overflow:hidden;transition:all .25s cubic-bezier(.2,.8,.3,1)}
+.btn::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);pointer-events:none;transition:.5s}
+.btn:hover::after{left:140%}
+.btn:hover{box-shadow:0 0 16px rgba(56,232,255,.4);transform:translateY(-1px)}
+
+/* Glowing pulse for radar live indicator */
+.dot-pulse.on{position:relative}
+.dot-pulse.on::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1.5px solid #10b981;animation:radarPulse 2s cubic-bezier(.2,.8,.3,1) infinite;pointer-events:none}
+
+/* Futuristic Cyber Scrollbar */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:rgba(15,9,48,.95)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(56,232,255,.6),rgba(166,107,255,.6));border-radius:999px;border:2px solid rgba(15,9,48,.95)}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--cyan),var(--violet))}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   .rv{opacity:1;transform:none}.title span{opacity:1;transform:none}

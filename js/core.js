@@ -146,7 +146,7 @@
         '<div class="dd"><a href="index.html#cats" data-nav="cats"><span data-i18n="nCats"></span> &#9662;</a><div class="ddm" id="ddCats"></div></div>' +
         '<a href="topup.html" data-nav="topup" data-i18n="nTopup"></a>' +
         '<a href="account.html" data-nav="account" data-i18n="nAcc"></a>' +
-        '<a href="javascript:void(0)" data-mate-open="ticket" class="nav-ticket-link" style="color:var(--cyan);font-weight:600">🎫 Ticket</a>' +
+        '<a href="javascript:void(0)" data-mate-open="ticket" class="nav-ticket-link" style="color:var(--cyan);font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg> Ticket</a>' +
         '<a href="admin.html" data-nav="admin" data-i18n="nAdmin" class="hide navAdmin"></a>' +
       '</nav><div class="sp"></div>' +
       '<div class="status-pill hide-m" id="liveStatusPill" title="ดูสถานะร้านค้า & แอดมิน"><span class="sdot dot-pulse" id="navStatusDot"></span><span id="navStatusText">' + esc(I18N.t('serverStatusTitle')) + '</span></div>' +
@@ -174,7 +174,7 @@
     extra.innerHTML =
       '<nav class="tabbar"><a href="index.html" data-nav="home" data-i18n="nHome"></a><a href="index.html#cats" data-nav="cats" data-i18n="nCats"></a>' +
       '<a href="topup.html" data-nav="topup" data-i18n="nTopup"></a><a href="account.html" data-nav="account" data-i18n="nAcc"></a>' +
-      '<a href="javascript:void(0)" data-mate-open="ticket" style="color:var(--cyan)">🎫 Ticket</a></nav>' +
+      '<a href="javascript:void(0)" data-mate-open="ticket" style="color:var(--cyan)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg> Ticket</a></nav>' +
       /* Step 3: ให้สมัครก่อน (Auth Modal มี Onboarding notice และ lockm) */
       '<div class="modal" id="mAuth"><div class="box"><button class="x" data-close>&times;</button>' +
         '<div class="onboard-banner hide" id="aOnboardNotice">' +
@@ -184,7 +184,7 @@
         '</div>' +
         '<h3 id="aTitle"></h3>' +
         '<div class="discord-login-block" style="text-align:center;margin:12px 0 14px;background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.42);border-radius:12px;padding:12px 14px">' +
-          '<div style="font-size:.84rem;color:#e0e7ff;font-weight:600;margin-bottom:8px">⚡ ต้องเข้าสู่ระบบด้วย Discord ก่อนใช้งานระบบร้านค้า</div>' +
+          '<div style="font-size:.84rem;color:#e0e7ff;font-weight:600;margin-bottom:8px">ต้องเข้าสู่ระบบด้วย Discord ก่อนใช้งานระบบร้านค้า</div>' +
           '<button type="button" class="btn" id="aDiscordBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#5865f2;color:#fff;font-weight:700;padding:11px;border:none;border-radius:8px;font-size:.92rem;cursor:pointer;box-shadow:0 4px 14px rgba(88,101,242,.45)">' +
             '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>' +
             '<span>เข้าสู่ระบบด้วย Discord (Login with Discord)</span>' +
@@ -216,7 +216,7 @@
         '<div class="ctabs">' +
           '<button type="button" class="ctab on" data-cmode="ai" data-i18n="tabAi"></button>' +
           '<button type="button" class="ctab" data-cmode="admin" data-i18n="tabAdmin"></button>' +
-          '<button type="button" class="ctab" data-cmode="ticket">🎫 Ticket</button>' +
+          '<button type="button" class="ctab" data-cmode="ticket"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg> Ticket</button>' +
         '</div>' +
         '<div class="cchips" id="cChips">' +
           '<button type="button" class="cchip" data-cq="rec" data-i18n="qRec"></button>' +
@@ -449,6 +449,65 @@
     }
     if (scOn) scOn.textContent = pOn;
     if (scTot) scTot.textContent = pTot;
+
+    var gridEl = $('#scAdminGrid');
+    if (gridEl) {
+      renderAdminRoster(gridEl, isOnline, s && s.admins ? s.admins.online_list : null, s && s.admins ? s.admins.online_names : null);
+    }
+  }
+
+  function renderAdminRoster(gridEl, isOnline, onlineList, onlineNames) {
+    if (!gridEl) return;
+    var list = [];
+    if (Array.isArray(onlineList) && onlineList.length > 0) {
+      list = onlineList;
+    } else if (Array.isArray(onlineNames) && onlineNames.length > 0) {
+      list = onlineNames.map(function (nm) {
+        return { name: nm, username: nm, avatar: null, status: 'online' };
+      });
+    }
+
+    if (!isOnline || list.length === 0) {
+      gridEl.innerHTML =
+        '<div class="sc-admin-empty">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' +
+          '<span>ขณะนี้แอดมินออฟไลน์ใน Discord สามารถเปิด Ticket ฝากข้อความไว้ได้ตลอด 24 ชั่วโมง</span>' +
+        '</div>';
+      return;
+    }
+
+    gridEl.innerHTML = list.map(function (adm) {
+      var dName = adm.name || adm.username || 'Admin';
+      var uName = adm.username ? ('@' + adm.username) : ('@' + dName);
+      var st = adm.status || 'online';
+      var stClass = st === 'dnd' ? 'dnd' : (st === 'idle' ? 'idle' : 'on');
+      var stLabel = st === 'dnd' ? 'ห้ามรบกวน' : (st === 'idle' ? 'ไม่อยู่' : 'ออนไลน์');
+      var avHtml = adm.avatar
+        ? '<img src="' + esc(adm.avatar) + '" class="sc-admin-avatar" alt="' + esc(dName) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+          '<div class="sc-admin-avatar-default" style="display:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>'
+        : '<div class="sc-admin-avatar-default"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
+
+      return '<div class="sc-admin-card" data-admin-open-ticket="1" title="ติดต่อแอดมินผ่าน Ticket">' +
+        '<div class="sc-admin-avatar-wrap">' +
+          avHtml +
+          '<span class="sc-admin-status-dot ' + stClass + '" title="' + esc(stLabel) + '"></span>' +
+        '</div>' +
+        '<div class="sc-admin-info">' +
+          '<div class="sc-admin-name">' + esc(dName) + '</div>' +
+          '<div class="sc-admin-handle">' + esc(uName) + '</div>' +
+        '</div>' +
+        '<div class="sc-admin-tag">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>' +
+          '<span>Admin</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    $$('[data-admin-open-ticket]', gridEl).forEach(function (card) {
+      card.onclick = function () {
+        if (typeof App.toggleChat === 'function') App.toggleChat('ticket');
+      };
+    });
   }
 
   async function syncServerStatus() {
@@ -848,7 +907,7 @@
           inp.disabled = true;
           if (sendBtn) sendBtn.disabled = true;
         } else if (C.activeTicket.status === 'closed') {
-          inp.placeholder = '🔒 Ticket นี้ถูกปิดแล้ว (ดูประวัติได้อย่างเดียว)';
+          inp.placeholder = 'Ticket นี้ถูกปิดแล้ว (ดูประวัติได้อย่างเดียว)';
           inp.disabled = true;
           if (sendBtn) sendBtn.disabled = true;
         } else {
@@ -894,7 +953,9 @@
     if (!App.user) {
       box.innerHTML =
         '<div class="ticket-prompt" style="text-align:center;padding:28px 14px">' +
-          '<div style="font-size:2.5rem;margin-bottom:8px">🎫</div>' +
+          '<div style="width:52px;height:52px;margin:0 auto 12px;background:rgba(56,232,255,.1);border:1px solid rgba(56,232,255,.3);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--cyan);box-shadow:0 0 18px rgba(56,232,255,.2)">' +
+            '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>' +
+          '</div>' +
           '<h4 style="margin:0 0 8px;color:#fff">ระบบ Ticket ติดต่อทีมงาน</h4>' +
           '<p style="color:var(--mute);font-size:.86rem;line-height:1.55;margin:0 0 16px">จำเป็นต้องเข้าสู่ระบบด้วย Discord เพื่อใช้งานระบบ Ticket และเชื่อมต่อกับห้อง Discord ของร้าน</p>' +
           '<button type="button" class="btn" id="tDiscordLogin" style="background:#5865f2;color:#fff;border:none;padding:11px 18px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 4px 14px rgba(88,101,242,.4)">' +
@@ -927,13 +988,13 @@
           }).join('');
 
       var actionBtnHtml = isOpen
-        ? '<button type="button" class="btn xs danger" id="tCloseBtn" style="padding:4px 8px" title="ปิดการสนทนา">🔒 ปิด Ticket</button>'
-        : '<button type="button" class="btn xs danger" id="tDeleteBtn" style="padding:4px 8px" title="ลบประวัติแชท">🗑️ ลบแชท</button>';
+        ? '<button type="button" class="btn xs danger" id="tCloseBtn" style="padding:4px 8px;display:inline-flex;align-items:center;gap:4px" title="ปิดการสนทนา"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <span>ปิด Ticket</span></button>'
+        : '<button type="button" class="btn xs danger" id="tDeleteBtn" style="padding:4px 8px;display:inline-flex;align-items:center;gap:4px" title="ลบประวัติแชท"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> <span>ลบแชท</span></button>';
 
       var closedNoticeHtml = !isOpen
         ? '<div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:.78rem;color:#fca5a5;display:flex;align-items:center;justify-content:space-between;gap:8px">' +
-            '<span>🔒 <b>Ticket นี้ปิดแล้ว:</b> พิมพ์ไม่ได้ แต่คุณสามารถดูประวัติการคุยย้อนหลังได้</span>' +
-            '<button type="button" class="btn xs danger" id="tDeleteBannerBtn" style="padding:3px 8px;font-size:.72rem">🗑️ ลบประวัติแชท</button>' +
+            '<span><b>Ticket นี้ปิดแล้ว:</b> พิมพ์ไม่ได้ แต่คุณสามารถดูประวัติการคุยย้อนหลังได้</span>' +
+            '<button type="button" class="btn xs danger" id="tDeleteBannerBtn" style="padding:3px 8px;font-size:.72rem">ลบประวัติแชท</button>' +
           '</div>'
         : '';
 
@@ -941,8 +1002,8 @@
         '<div class="ticket-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);margin:-12px -12px 10px">' +
           '<button type="button" class="btn xs ghost" id="tBackBtn" style="padding:4px 8px">&larr; ย้อนกลับ</button>' +
           '<div style="text-align:center;flex:1;overflow:hidden;padding:0 8px">' +
-            '<div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🎫 #' + (act.ticket_number || 1) + ' ' + esc(act.title || 'ทั่วไป') + '</div>' +
-            '<small style="font-size:.72rem;color:' + (isOpen ? 'var(--green)' : 'var(--bad)') + '">' + (isOpen ? '🟢 เปิดอยู่ (ซิงค์ Discord สด)' : '🔒 ปิดแล้ว (ดูประวัติได้)') + '</small>' +
+            '<div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ticket #' + (act.ticket_number || 1) + ' ' + esc(act.title || 'ทั่วไป') + '</div>' +
+            '<small style="font-size:.72rem;color:' + (isOpen ? 'var(--green)' : 'var(--bad)') + '">' + (isOpen ? 'เปิดอยู่ (ซิงค์ Discord สด)' : 'ปิดแล้ว (ดูประวัติได้)') + '</small>' +
           '</div>' +
           actionBtnHtml +
         '</div>' +
@@ -968,12 +1029,12 @@
           var isOpen = tk.status === 'open';
           return '<div class="ticket-item" data-tkid="' + tk.id + '" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:.2s">' +
             '<div style="flex:1;overflow:hidden;padding-right:8px">' +
-              '<div style="font-weight:600;font-size:.9rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🎫 #' + (tk.ticket_number || 1) + ' ' + esc(tk.title || 'ทั่วไป') + '</div>' +
+              '<div style="font-weight:600;font-size:.9rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ticket #' + (tk.ticket_number || 1) + ' ' + esc(tk.title || 'ทั่วไป') + '</div>' +
               '<small style="color:var(--mute);font-size:.74rem">' + esc(App.fmtTime(tk.created_at)) + '</small>' +
             '</div>' +
             '<div style="display:flex;align-items:center;gap:6px">' +
-              '<span class="st ' + (isOpen ? 'ok' : 'bad') + '" style="font-size:.72rem">' + (isOpen ? '🟢 เปิดอยู่' : '🔒 ปิดแล้ว') + '</span>' +
-              (!isOpen ? '<button type="button" class="btn xs danger t-del-item" data-delid="' + tk.id + '" style="padding:2px 7px;font-size:.72rem" title="ลบประวัติแชท">🗑️</button>' : '') +
+              '<span class="st ' + (isOpen ? 'ok' : 'bad') + '" style="font-size:.72rem">' + (isOpen ? 'เปิดอยู่' : 'ปิดแล้ว') + '</span>' +
+              (!isOpen ? '<button type="button" class="btn xs danger t-del-item" data-delid="' + tk.id + '" style="padding:2px 7px;font-size:.72rem" title="ลบประวัติแชท">ลบ</button>' : '') +
             '</div>' +
           '</div>';
         }).join('');
@@ -981,16 +1042,16 @@
     box.innerHTML =
       '<div style="padding-bottom:12px">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
-          '<h5 style="margin:0;font-size:.95rem">🎫 รายการ Ticket ของคุณ</h5>' +
+          '<h5 style="margin:0;font-size:.95rem">รายการ Ticket ของคุณ</h5>' +
           '<button type="button" class="btn xs" id="tOpenNewBtn">+ เปิด Ticket ใหม่</button>' +
         '</div>' +
         '<div id="tNewForm" class="hide" style="background:rgba(56,232,255,.06);border:1px solid rgba(56,232,255,.25);border-radius:12px;padding:12px;margin-bottom:14px">' +
-          '<div style="font-weight:700;font-size:.88rem;color:var(--cyan);margin-bottom:8px">📝 กรอกเรื่องที่ต้องการติดต่อทีมงาน</div>' +
+          '<div style="font-weight:700;font-size:.88rem;color:var(--cyan);margin-bottom:8px">กรอกเรื่องที่ต้องการติดต่อทีมงาน</div>' +
           '<input class="inp" id="tTitleInp" placeholder="หัวข้อ เช่น สอบถามสินค้า, ปัญหาเติมเงิน..." maxlength="80" style="width:100%;padding:8px 10px;margin-bottom:8px">' +
           '<textarea class="inp" id="tDetailInp" placeholder="รายละเอียดที่ต้องการแจ้งแอดมิน..." rows="3" style="width:100%;padding:8px 10px;resize:none;margin-bottom:10px"></textarea>' +
           '<div style="display:flex;gap:8px;justify-content:flex-end">' +
             '<button type="button" class="btn xs ghost" id="tCancelNew">ยกเลิก</button>' +
-            '<button type="button" class="btn xs" id="tSubmitNew">🚀 เปิด Ticket ทันที</button>' +
+            '<button type="button" class="btn xs" id="tSubmitNew">เปิด Ticket ทันที</button>' +
           '</div>' +
         '</div>' +
         '<div class="ticket-list">' + tRows + '</div>' +
@@ -1315,7 +1376,7 @@
     }).then(function () {
       return sb.from('tickets').delete().eq('id', tId);
     }).then(function () {
-      toast('🗑️ ลบประวัติแชท Ticket เรียบร้อยแล้ว');
+      toast('ลบประวัติแชท Ticket เรียบร้อยแล้ว');
       if (C.activeTicket && C.activeTicket.id === tId) {
         C.activeTicket = null;
         C.ticketMsgs = [];
@@ -1329,7 +1390,7 @@
       }
       loadUserTickets();
       renderChat();
-      toast('🗑️ ลบประวัติแชทเรียบร้อยแล้ว');
+      toast('ลบประวัติแชทเรียบร้อยแล้ว');
     });
   }
 

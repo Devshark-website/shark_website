@@ -65,7 +65,7 @@
     box.innerHTML = banBanner + '<div class="two">' +
       '<div class="panel">' +
         '<div class="pr"><span class="mute">' + esc(t('balance')) + '</span><div class="walletbig">' + money(bal) + ' <small style="font-size:1rem">' + esc(t('baht')) + '</small></div></div>' +
-        '<div class="info" style="margin-top:12px">🎮 <b>สำหรับการเติมเกมที่ใช้ UID:</b> เมื่อเติมเงินเข้าระบบแล้ว ให้เลือกแพ็กเติมเกมที่ต้องการ ระบบจะให้<b>กรอก UID ตอนกดเติมเกมแต่ละครั้ง</b> (ไม่ต้องกรอกแบบถาวร) <a href="category.html?c=topup" style="text-decoration:underline;margin-left:4px">ไปหน้าเติมเกม &rarr;</a></div>' +
+        '<div class="info" style="margin-top:12px"><b>สำหรับการเติมเกมที่ใช้ UID:</b> เมื่อเติมเงินเข้าระบบแล้ว ให้เลือกแพ็กเติมเกมที่ต้องการ ระบบจะให้<b>กรอก UID ตอนกดเติมเกมแต่ละครั้ง</b> (ไม่ต้องกรอกแบบถาวร) <a href="category.html?c=topup" style="text-decoration:underline;margin-left:4px">ไปหน้าเติมเกม &rarr;</a></div>' +
         '<label class="lab">' + esc(t('amount')) + ' (' + esc(t('baht')) + ')</label><div class="chips">' + chips + '</div>' +
         '<label class="lab" for="tAmt">' + esc(t('custom')) + ' (' + CFG.minTopup + ' - ' + money(CFG.maxTopup) + ')</label>' +
         '<input class="inp" id="tAmt" type="number" min="' + CFG.minTopup + '" max="' + CFG.maxTopup + '" value="' + (amt || '') + '">' +
@@ -126,7 +126,7 @@
     h += '<label class="lab">' + esc(t('slip')) + ' *</label>' +
       '<div class="upload-zone">' +
         '<input id="tSlip" type="file" accept="image/*">' +
-        '<b>📁 แตะเพื่อเลือกรูปสลิปโอนเงิน (รองรับคอมและมือถือ)</b>' +
+        '<b>แตะเพื่อเลือกรูปสลิปโอนเงิน (รองรับคอมและมือถือ)</b>' +
         '<small>เลือกไฟล์รูปสลิปจากเครื่องหรืออัลบั้มรูปในโทรศัพท์ได้เลย</small>' +
       '</div>' +
       '<img id="sPrev" class="preview' + (slipUrl ? '' : ' hide') + '" src="' + esc(slipUrl) + '" alt="">' +

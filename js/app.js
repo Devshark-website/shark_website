@@ -6,11 +6,11 @@
   var transitionTimer = null;
 
   var typeBadgeMap = {
-    info: '📢 ข่าวสารทั่วไป',
-    promo: '🎁 โปรโมชั่นพิเศษ',
-    alert: '⚡ ประกาศสำคัญ',
-    event: '🎉 กิจกรรมพิเศษ',
-    update: '🛠️ อัปเดตระบบ'
+    info: 'ข่าวสารทั่วไป',
+    promo: 'โปรโมชั่นพิเศษ',
+    alert: 'ประกาศสำคัญ',
+    event: 'กิจกรรมพิเศษ',
+    update: 'อัปเดตระบบ'
   };
 
   function fmtContent(txt) {
@@ -23,24 +23,24 @@
   }
 
   function formatTimeRemaining(endsAtStr) {
-    if (!endsAtStr) return '⏳ ประกาศต่อเนื่อง';
+    if (!endsAtStr) return 'ประกาศต่อเนื่อง';
     var e = new Date(endsAtStr);
     var now = new Date();
     var diffMs = e.getTime() - now.getTime();
-    if (diffMs <= 0) return '⌛ หมดอายุแล้ว';
+    if (diffMs <= 0) return 'หมดอายุแล้ว';
 
     var diffMins = Math.floor(diffMs / 60000);
     var diffHours = Math.floor(diffMins / 60);
     var diffDays = Math.floor(diffHours / 24);
 
     if (diffDays >= 2) {
-      return '⏳ ถึง: ' + App.fmtTime(endsAtStr);
+      return 'ถึง: ' + App.fmtTime(endsAtStr);
     } else if (diffDays === 1) {
-      return '⏳ เหลืออีก 1 วัน (' + (diffHours % 24) + ' ชม.)';
+      return 'เหลืออีก 1 วัน (' + (diffHours % 24) + ' ชม.)';
     } else if (diffHours > 0) {
-      return '⏳ เหลืออีก ' + diffHours + ' ชม. ' + (diffMins % 60) + ' นาที';
+      return 'เหลืออีก ' + diffHours + ' ชม. ' + (diffMins % 60) + ' นาที';
     } else {
-      return '⏳ สิ้นสุดในอีก ' + Math.max(1, diffMins) + ' นาที';
+      return 'สิ้นสุดในอีก ' + Math.max(1, diffMins) + ' นาที';
     }
   }
 
@@ -105,18 +105,21 @@
       card.className = 'announcement-card type-' + (ann.type || 'info');
     }
 
-    var badgeEl = $('#annBadge');
+    var badgeEl = $('#annBadgeText') || $('#annBadge');
     if (badgeEl) {
-      badgeEl.textContent = ann.badge || typeBadgeMap[ann.type] || '📢 ประกาศ';
+      badgeEl.textContent = ann.badge || typeBadgeMap[ann.type] || 'ประกาศ';
     }
 
-    var timerEl = $('#annTimer');
+    var timerEl = $('#annTimerText') || $('#annTimer');
     if (timerEl) {
       timerEl.textContent = formatTimeRemaining(ann.ends_at);
+    }
+    var timerWrapEl = $('#annTimer');
+    if (timerWrapEl) {
       if (ann.ends_at) {
-        timerEl.title = 'สิ้นสุด: ' + App.fmtTime(ann.ends_at) + ' (หลังจากนี้จะแสดงประกาศถัดไป)';
+        timerWrapEl.title = 'สิ้นสุด: ' + App.fmtTime(ann.ends_at) + ' (หลังจากนี้จะแสดงประกาศถัดไป)';
       } else {
-        timerEl.title = 'ประกาศไม่มีกำหนดหมดอายุ';
+        timerWrapEl.title = 'ประกาศไม่มีกำหนดหมดอายุ';
       }
     }
 
@@ -142,7 +145,7 @@
     if (actEl && linkBtn) {
       if (ann.link_url) {
         linkBtn.href = ann.link_url;
-        linkBtn.textContent = ann.link_text || '👉 ดูรายละเอียดเพิ่มเติม';
+        linkBtn.textContent = ann.link_text || 'ดูรายละเอียดเพิ่มเติม';
         if (/^https?:\/\//i.test(ann.link_url)) {
           linkBtn.target = '_blank';
           linkBtn.rel = 'noopener';

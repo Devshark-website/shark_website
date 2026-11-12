@@ -103,7 +103,7 @@
     var stPill = out ? '<span class="pill bad">' + esc(t('soldOut')) + '</span>'
       : '<span class="pill ok">' + esc(left < 0 ? t('unlimited') : t('left') + ' ' + left) + '</span>';
     var autoTxt = prod.delivery === 'code'
-      ? (prod.credential_type === 'user_pass' ? '👤 ส่งอัตโนมัติ (ชื่อ + รหัส)' : '📧 ส่งอัตโนมัติ (อีเมล + รหัส)')
+      ? (prod.credential_type === 'user_pass' ? 'ส่งอัตโนมัติ (ชื่อ + รหัส)' : 'ส่งอัตโนมัติ (อีเมล + รหัส)')
       : t('manualDel');
     var delPill = '<span class="pill">&#9889; ' + esc(autoTxt) + '</span>';
     var soldPill = prod.sold > 0 ? '<span class="pill">' + esc(t('sold')) + ' ' + prod.sold + '</span>' : '';
@@ -115,7 +115,7 @@
     var inpHtml = '';
     if (needsUidInput()) {
       var lbl = uidLabelText();
-      inpHtml = '<label class="lab" for="pInp">🎮 ' + esc(lbl) + ' *</label>' +
+      inpHtml = '<label class="lab" for="pInp">' + esc(lbl) + ' *</label>' +
         '<input class="inp" id="pInp" maxlength="200" value="' + esc(uInput) + '" placeholder="กรอก ' + esc(lbl) + ' สำหรับการเติมเกมครั้งนี้...">' +
         '<small class="hint">' + esc(t('uidPerOrderHint')) + '</small>';
     }
@@ -168,7 +168,7 @@
     $('#bBody').innerHTML = '<div style="display:flex;gap:14px;align-items:center;margin:10px 0">' +
       '<img src="' + esc(App.cover(prod)) + '" alt="" style="width:84px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid var(--line)">' +
       '<div><h4>' + esc(nm(prod)) + ' &times; ' + qty + '</h4><div class="price">' + money(tot) + ' ' + esc(t('baht')) + '</div></div></div>' +
-      (reqUid ? '<div style="margin:10px 0"><label class="lab" for="mUidInp">🎮 ' + esc(lbl) + ' *</label><input class="inp" id="mUidInp" maxlength="200" value="' + esc(uInput.trim()) + '" placeholder="กรอก ' + esc(lbl) + ' สำหรับการเติมเกมครั้งนี้..."><small class="hint">' + esc(t('uidPerOrderHint')) + '</small></div>' : '') +
+      (reqUid ? '<div style="margin:10px 0"><label class="lab" for="mUidInp">' + esc(lbl) + ' *</label><input class="inp" id="mUidInp" maxlength="200" value="' + esc(uInput.trim()) + '" placeholder="กรอก ' + esc(lbl) + ' สำหรับการเติมเกมครั้งนี้..."><small class="hint">' + esc(t('uidPerOrderHint')) + '</small></div>' : '') +
       '<div class="copyrow"><span class="mute">' + esc(t('balance')) + '</span><b>' + money(bal) + ' ' + esc(t('baht')) + '</b></div>' +
       (short > 0 ? '<div class="info" style="border-color:var(--bad);color:var(--bad)">' + esc(t('notEnough')) + ' <b>' + money(short) + ' ' + esc(t('baht')) + '</b></div>' : '');
 
@@ -216,7 +216,7 @@
         App.bindDeliveredCopy($('#bBody'));
       } else {
         $('#bBody').innerHTML = '<div class="info">' + esc(t('pendingDel')) +
-          (finalInput ? '<br><b>🎮 UID สำหรับออเดอร์นี้: ' + esc(finalInput) + '</b>' : '') + '</div>';
+          (finalInput ? '<br><b>UID สำหรับออเดอร์นี้: ' + esc(finalInput) + '</b>' : '') + '</div>';
       }
       $('#bFoot').innerHTML = '<a class="btn" style="flex:1" href="account.html">' + esc(t('seeOrders')) + '</a>' +
         '<button class="btn ghost" data-close>' + esc(t('close')) + '</button>';
