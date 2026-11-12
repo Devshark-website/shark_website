@@ -80,7 +80,7 @@
       contact: 'ติดต่อร้าน',
       /* admin */
       aTitle: 'หลังร้าน', aNeed: 'หน้านี้สำหรับแอดมินเท่านั้น', aNotAdmin: 'บัญชีนี้ไม่ใช่แอดมิน (ดูวิธีตั้งแอดมินใน SETUP.md)',
-      aDash: 'แดชบอร์ด', aTop: 'เติมเงิน', aOrd: 'ออเดอร์', aProd: 'สินค้า', aCats: 'หมวดหมู่', aUsers: 'ผู้ใช้',
+      aDash: 'แดชบอร์ด', aTop: 'เติมเงิน', aOrd: 'ออเดอร์', aProd: 'สินค้า', aCats: 'หมวดหมู่', aUsers: 'ผู้ใช้', aAnnounce: 'ประกาศหน้าเว็บ',
       stUsers: 'สมาชิกทั้งหมด', stPT: 'เติมเงินรอตรวจ', stPO: 'ออเดอร์รอส่ง', stToday: 'ยอดขายวันนี้', st30: 'ยอดขาย 30 วัน', stTop30: 'ยอดเติม 30 วัน', stBal: 'เงินในระบบรวม', st14: 'ยอดขาย 14 วันล่าสุด',
       resetSales: 'รีเซ็ตยอดขายทั้งหมด',
       resetSalesQ: 'ยืนยันการรีเซ็ตยอดขายทั้งหมดของร้านเป็น 0 ฿?\n\n• ยอดขายวันนี้, ยอดขาย 30 วัน และกราฟสถิติ 14 วันจะถูกรีเซ็ตเป็น 0 ฿\n• จำนวนที่ขายแล้วของสินค้าทุกชิ้นในร้านจะถูกรีเซ็ตเป็น 0\n• ประวัติออเดอร์เดิมจะถูกล้างออกจากระบบ',
@@ -215,7 +215,7 @@
       tip4: 'Message Admin right here — it notifies our Discord team instantly!',
       contact: 'Contact',
       aTitle: 'Admin', aNeed: 'This page is for admins only', aNotAdmin: 'This account is not an admin (see SETUP.md to make one)',
-      aDash: 'Dashboard', aTop: 'Top-ups', aOrd: 'Orders', aProd: 'Products', aCats: 'Categories', aUsers: 'Users',
+      aDash: 'Dashboard', aTop: 'Top-ups', aOrd: 'Orders', aProd: 'Products', aCats: 'Categories', aUsers: 'Users', aAnnounce: 'Announcements',
       stUsers: 'Members', stPT: 'Top-ups to review', stPO: 'Orders to deliver', stToday: 'Sales today', st30: 'Sales 30 days', stTop30: 'Top-ups 30 days', stBal: 'Total balances', st14: 'Sales, last 14 days',
       resetSales: 'Reset All Sales',
       resetSalesQ: 'Reset all store sales to 0 THB?\n\n• Sales today, 30-day sales, and the 14-day chart will reset to 0 THB\n• All product sold counters will be reset to 0\n• All previous order records will be cleared',

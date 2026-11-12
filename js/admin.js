@@ -2,7 +2,7 @@
    ตรวจสลิปเติมเงิน, ส่งออเดอร์, ลบประวัติซื้อขาย/เติมเงิน/แชท, ส่งบัญชีอัตโนมัติ (อีเมล+รหัส / ชื่อ+รหัส), อัปโหลดรูปจากเครื่องโดยตรง, ลบบัญชีผู้ใช้ */
 (function () {
   var $ = App.$, $$ = App.$$, esc = App.esc, money = App.money, nm = App.nm, t = I18N.t, sb = App.sb;
-  var st = { tab: 'dash', tf: 'pending', of: 'pending', pf: 'all', lf: 'all', uq: '', cats: [], prods: [] };
+  var st = { tab: 'dash', tf: 'pending', of: 'pending', pf: 'all', lf: 'all', af: 'all', uq: '', cats: [], prods: [] };
   var admChan = null, activeChatUser = null, activeChatName = '', activeChatUid = '';
 
   function boot() {
@@ -59,6 +59,12 @@
           pushAlertToWebhookClient(a);
           if (st.tab === 'users') loadUsers();
         }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, function () {
+        if (st.tab === 'announcements') loadAnnouncements();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.announcements' }, function () {
+        if (st.tab === 'announcements') loadAnnouncements();
       })
       .subscribe();
   }
@@ -131,7 +137,17 @@
 
   function drawShell() {
     var w = $('#admWrap');
-    var tabs = [['dash', 'aDash'], ['topups', 'aTop'], ['orders', 'aOrd'], ['products', 'aProd'], ['cats', 'aCats'], ['users', 'aUsers'], ['chats', 'aChats'], ['logs', 'aLogs']].map(function (x) {
+    var tabs = [
+      ['dash', 'aDash'],
+      ['topups', 'aTop'],
+      ['orders', 'aOrd'],
+      ['products', 'aProd'],
+      ['cats', 'aCats'],
+      ['users', 'aUsers'],
+      ['chats', 'aChats'],
+      ['announcements', 'aAnnounce'],
+      ['logs', 'aLogs']
+    ].map(function (x) {
       return '<button type="button" class="tab' + (st.tab === x[0] ? ' on' : '') + '" data-atab="' + x[0] + '">' + esc(t(x[1])) + '</button>';
     }).join('');
     w.innerHTML = '<div class="sh"><div><h2 data-i18n="aTitle">' + esc(t('aTitle')) + '</h2></div></div>' +
@@ -148,6 +164,7 @@
     if (st.tab === 'cats') return loadCats();
     if (st.tab === 'users') return loadUsers();
     if (st.tab === 'chats') return loadChats();
+    if (st.tab === 'announcements') return loadAnnouncements();
     if (st.tab === 'logs') return loadLogs();
   }
 
@@ -1401,7 +1418,361 @@
     });
   }
 
+  /* ------------------------------------------------------------------ 8) Announcements Management (ระบบประกาศหน้าเว็บ) */
+  var typeBadgeMap = {
+    info: '📢 ข่าวสารทั่วไป',
+    promo: '🎁 โปรโมชั่นพิเศษ',
+    alert: '⚡ ประกาศสำคัญ',
+    event: '🎉 กิจกรรมพิเศษ',
+    update: '🛠️ อัปเดตระบบ'
+  };
+
+  function toDatetimeLocal(isoStr) {
+    if (!isoStr) return '';
+    var d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function fromDatetimeLocal(localStr) {
+    if (!localStr) return null;
+    var d = new Date(localStr);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  function getAnnounceStatusInfo(a) {
+    var now = new Date();
+    if (!a.is_active) {
+      return { code: 'disabled', label: '⚪ ปิดใช้งาน', badgeClass: 'st', desc: 'ปิดการแสดงผลชั่วคราว' };
+    }
+    var sDate = a.starts_at ? new Date(a.starts_at) : null;
+    var eDate = a.ends_at ? new Date(a.ends_at) : null;
+
+    if (sDate && sDate > now) {
+      var diffStart = Math.ceil((sDate.getTime() - now.getTime()) / (1000 * 60));
+      var timeStr = diffStart >= 1440 ? Math.ceil(diffStart / 1440) + ' วัน' : Math.ceil(diffStart / 60) + ' ชม.';
+      return { code: 'scheduled', label: '🕒 รอถึงกำหนด (' + timeStr + ')', badgeClass: 'st warn', desc: 'จะเริ่มแสดงอัตโนมัติเมื่อถึงเวลา' };
+    }
+    if (eDate && eDate <= now) {
+      return { code: 'expired', label: '🛑 หมดอายุแล้ว', badgeClass: 'st bad', desc: 'หมดเวลาและถูกแทนที่ด้วยประกาศถัดไป' };
+    }
+    var remStr = '';
+    if (eDate) {
+      var diffEnd = Math.ceil((eDate.getTime() - now.getTime()) / (1000 * 60));
+      remStr = diffEnd >= 1440 ? 'เหลืออีก ' + Math.ceil(diffEnd / 1440) + ' วัน' : 'เหลืออีก ' + Math.ceil(diffEnd / 60) + ' ชม.';
+    } else {
+      remStr = 'แสดงต่อเนื่อง';
+    }
+    return { code: 'active', label: '🟢 กำลังแสดงผล (' + remStr + ')', badgeClass: 'st ok', desc: 'กำลังแสดงผลบนหน้า index.html' };
+  }
+
+  function loadAnnouncements() {
+    App.getAnnouncements().then(function (list) {
+      var b = $('#aBody'); if (!b) return;
+      var all = list || [];
+
+      var activeCount = 0, scheduledCount = 0, expiredCount = 0, disabledCount = 0;
+      all.forEach(function (a) {
+        var info = getAnnounceStatusInfo(a);
+        if (info.code === 'active') activeCount++;
+        else if (info.code === 'scheduled') scheduledCount++;
+        else if (info.code === 'expired') expiredCount++;
+        else if (info.code === 'disabled') disabledCount++;
+      });
+
+      var filtered = all.filter(function (a) {
+        if (!st.af || st.af === 'all') return true;
+        var info = getAnnounceStatusInfo(a);
+        return info.code === st.af;
+      });
+
+      var statsHtml =
+        '<div class="stats" style="margin-bottom:18px">' +
+          '<div class="scard"><small>🟢 กำลังแสดงหน้าเว็บ</small><b>' + activeCount + '</b></div>' +
+          '<div class="scard"><small>🕒 รอแสดงตามคิว</small><b>' + scheduledCount + '</b></div>' +
+          '<div class="scard"><small>🛑 หมดอายุแล้ว (ถูกแทนที่)</small><b>' + expiredCount + '</b></div>' +
+          '<div class="scard"><small>ทั้งหมดในระบบ</small><b>' + all.length + '</b></div>' +
+        '</div>';
+
+      var filterChips = [
+        ['all', 'ทั้งหมด (' + all.length + ')'],
+        ['active', '🟢 กำลังแสดง (' + activeCount + ')'],
+        ['scheduled', '🕒 รอถึงกำหนด (' + scheduledCount + ')'],
+        ['expired', '🛑 หมดอายุแล้ว (' + expiredCount + ')'],
+        ['disabled', '⚪ ปิดใช้งาน (' + disabledCount + ')']
+      ].map(function (x) {
+        return '<button type="button" class="opt' + (st.af === x[0] ? ' on' : '') + '" data-af="' + x[0] + '">' + esc(x[1]) + '</button>';
+      }).join('');
+
+      var rowsHtml = '';
+      if (!filtered.length) {
+        rowsHtml = '<div class="lock" style="padding:32px 14px">ยังไม่มีรายการประกาศในหมวดนี้<br><button type="button" class="btn xs ok" id="btnCreateEmpty" style="margin-top:12px">➕ สร้างประกาศใหม่</button></div>';
+      } else {
+        rowsHtml = filtered.map(function (a, idx) {
+          var sInfo = getAnnounceStatusInfo(a);
+          var typeName = typeBadgeMap[a.type] || a.type;
+          var badgeDisplay = a.badge ? '<span class="st" style="font-size:.76rem;background:rgba(56,232,255,.18);color:var(--cyan)">' + esc(a.badge) + '</span> ' : '';
+          var imgThumb = a.image_url
+            ? '<img src="' + esc(a.image_url) + '" style="width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer" data-view-img="' + esc(a.image_url) + '" title="คลิกดูรูปขยาย">'
+            : '<div style="width:64px;height:48px;border-radius:8px;background:rgba(255,255,255,.05);display:grid;place-items:center;font-size:1.2rem;border:1px solid var(--line)">📢</div>';
+
+          var sDateStr = a.starts_at ? App.fmtTime(a.starts_at) : 'ทันที';
+          var eDateStr = a.ends_at ? App.fmtTime(a.ends_at) : 'ไม่มีกำหนด (ตลอดไป)';
+
+          var queueBadge = '';
+          if (sInfo.code === 'active' && idx === 0 && st.af !== 'expired') {
+            queueBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:.74rem;background:rgba(62,240,168,.18);color:#6ee7b7;padding:2px 8px;border-radius:6px;font-weight:700">⭐ ประกาศหลักบน index.html</span>';
+          } else if (sInfo.code === 'active' && idx > 0) {
+            queueBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:.74rem;background:rgba(56,232,255,.14);color:var(--cyan);padding:2px 8px;border-radius:6px">🔄 สลับร่วมในสไลด์ (' + (idx + 1) + ')</span>';
+          } else if (sInfo.code === 'scheduled') {
+            queueBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:.74rem;background:rgba(255,200,87,.14);color:#fde047;padding:2px 8px;border-radius:6px">🔜 คิวถัดไปที่จะขึ้นแทนที่เมื่อถึงเวลา</span>';
+          }
+
+          var toggleLabel = a.is_active ? '⏸️ ปิดชั่วคราว' : '▶️ เปิดใช้งาน';
+
+          return '<div class="arow" style="align-items:center">' +
+            '<div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">' +
+              imgThumb +
+              '<div style="flex:1;min-width:0">' +
+                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">' +
+                  '<span class="' + sInfo.badgeClass + '" style="font-size:.78rem">' + esc(sInfo.label) + '</span> ' +
+                  '<span style="font-size:.78rem;color:var(--mute)">(' + esc(typeName) + ')</span> ' +
+                  badgeDisplay +
+                  queueBadge +
+                '</div>' +
+                '<div style="font-weight:700;font-size:1.02rem;color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(a.title) + '</div>' +
+                '<div class="mute" style="font-size:.85rem;line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(a.content) + '</div>' +
+                '<div style="font-size:.76rem;color:var(--mute);display:flex;gap:12px;flex-wrap:wrap">' +
+                  '<span>⏱️ <b>เริ่ม:</b> ' + esc(sDateStr) + '</span>' +
+                  '<span>⌛ <b>จะหาย:</b> ' + esc(eDateStr) + '</span>' +
+                  '<span>🎯 <b>ลำดับ (Priority):</b> ' + (a.priority || 0) + '</span>' +
+                  (a.link_url ? '<span>🔗 <a href="' + esc(a.link_url) + '" target="_blank" rel="noopener">มีลิงก์ปลายทาง</a></span>' : '') +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="rowtools" style="flex-shrink:0;gap:6px">' +
+              '<button type="button" class="btn xs ghost" data-ann-prev="' + esc(a.id) + '" title="ดูตัวอย่างการแสดงผลบนหน้า index.html">👁️ ดูตัวอย่าง</button>' +
+              '<button type="button" class="btn xs" data-ann-edit="' + esc(a.id) + '" title="แก้ไขข้อมูลประกาศ">✏️ แก้ไข</button>' +
+              '<button type="button" class="btn xs ghost" data-ann-toggle="' + esc(a.id) + '" title="เปิด/ปิดประกาศ">' + toggleLabel + '</button>' +
+              '<button type="button" class="btn xs danger" data-ann-del="' + esc(a.id) + '" title="ลบประกาศนี้">🗑️</button>' +
+            '</div></div>';
+        }).join('');
+      }
+
+      b.innerHTML =
+        '<div class="sh" style="margin-bottom:14px;align-items:center">' +
+          '<div>' +
+            '<h3 style="margin:0;font-size:1.25rem">📢 จัดการประกาศหน้าเว็บ (index.html)</h3>' +
+            '<small class="mute">สามารถกำหนดวัน-เวลาที่ประกาศจะหาย แล้วระบบจะนำประกาศใหม่ที่ตั้งไว้ขึ้นมาแทนที่ให้อัตโนมัติ</small>' +
+          '</div>' +
+          '<button type="button" class="btn ok" id="btnCreateAnnounce">➕ สร้างประกาศใหม่</button>' +
+        '</div>' +
+        statsHtml +
+        '<div class="chips" style="margin-bottom:14px">' + filterChips + '</div>' +
+        '<div class="panel" style="padding:0;overflow:hidden">' + rowsHtml + '</div>';
+
+      var newBtn = $('#btnCreateAnnounce');
+      if (newBtn) newBtn.onclick = function () { openAnnounceModal(null); };
+      var emptyBtn = $('#btnCreateEmpty');
+      if (emptyBtn) emptyBtn.onclick = function () { openAnnounceModal(null); };
+
+      $$('[data-af]', b).forEach(function (btn) {
+        btn.onclick = function () {
+          st.af = btn.dataset.af;
+          loadAnnouncements();
+        };
+      });
+
+      $$('[data-ann-edit]', b).forEach(function (btn) {
+        btn.onclick = function () {
+          var item = all.find(function (x) { return String(x.id) === String(btn.dataset.annEdit); });
+          if (item) openAnnounceModal(item);
+        };
+      });
+
+      $$('[data-ann-prev]', b).forEach(function (btn) {
+        btn.onclick = function () {
+          var item = all.find(function (x) { return String(x.id) === String(btn.dataset.annPrev); });
+          if (item) previewAnnounceModal(item);
+        };
+      });
+
+      $$('[data-ann-toggle]', b).forEach(function (btn) {
+        btn.onclick = function () {
+          var item = all.find(function (x) { return String(x.id) === String(btn.dataset.annToggle); });
+          if (!item) return;
+          var newActive = !item.is_active;
+          App.saveAnnouncement(Object.assign({}, item, { is_active: newActive })).then(function () {
+            App.toast(newActive ? '🟢 เปิดใช้งานประกาศเรียบร้อย' : '⏸️ พักการแสดงประกาศเรียบร้อย');
+            loadAnnouncements();
+          }).catch(function (err) {
+            App.toast(err.message || 'บันทึกไม่สำเร็จ', true);
+          });
+        };
+      });
+
+      $$('[data-ann-del]', b).forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.dataset.annDel;
+          var item = all.find(function (x) { return String(x.id) === String(id); });
+          var name = (item && item.title) || 'ประกาศนี้';
+          if (!confirm('ยืนยันการลบประกาศ "' + name + '" หรือไม่?\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้')) return;
+          App.deleteAnnouncement(id).then(function () {
+            App.toast('🗑️ ลบประกาศเรียบร้อยแล้ว');
+            loadAnnouncements();
+          }).catch(function (err) {
+            App.toast(err.message || 'ลบไม่สำเร็จ', true);
+          });
+        };
+      });
+
+      $$('[data-view-img]', b).forEach(function (img) {
+        img.onclick = function () {
+          var lb = $('#lb'), lbImg = $('#lbImg');
+          if (lb && lbImg) { lbImg.src = img.dataset.viewImg; lb.classList.add('open'); }
+        };
+      });
+    });
+  }
+
+  function openAnnounceModal(ann) {
+    var modal = $('#mAnnounce');
+    if (!modal) return;
+    var isEdit = !!ann;
+    $('#maTitle').textContent = isEdit ? '✏️ แก้ไขประกาศหน้าเว็บ' : '➕ สร้างประกาศใหม่';
+    $('#maInputId').value = (ann && ann.id) || '';
+    $('#maInputTitle').value = (ann && ann.title) || '';
+    $('#maInputType').value = (ann && ann.type) || 'info';
+    $('#maInputBadge').value = (ann && ann.badge) || '';
+    $('#maInputContent').value = (ann && ann.content) || '';
+    $('#maInputImage').value = (ann && ann.image_url) || '';
+    $('#maInputLink').value = (ann && ann.link_url) || '';
+    $('#maInputLinkText').value = (ann && ann.link_text) || '';
+    $('#maInputStartsAt').value = toDatetimeLocal((ann && ann.starts_at) || new Date().toISOString());
+    $('#maInputEndsAt').value = toDatetimeLocal(ann && ann.ends_at);
+    $('#maInputPriority').value = ann && typeof ann.priority === 'number' ? ann.priority : 0;
+    $('#maInputActive').checked = ann ? ann.is_active !== false : true;
+
+    var prevBox = $('#maImagePreview');
+    var prevImg = $('#maImgPrev');
+    if (ann && ann.image_url && prevBox && prevImg) {
+      prevImg.src = ann.image_url;
+      prevBox.style.display = 'block';
+    } else if (prevBox) {
+      prevBox.style.display = 'none';
+    }
+
+    var imgInp = $('#maInputImage');
+    if (imgInp) {
+      imgInp.oninput = function () {
+        if (imgInp.value && prevBox && prevImg) {
+          prevImg.src = imgInp.value;
+          prevBox.style.display = 'block';
+        } else if (prevBox) {
+          prevBox.style.display = 'none';
+        }
+      };
+    }
+
+    var fileInp = $('#maFileImage');
+    if (fileInp) {
+      fileInp.value = '';
+      fileInp.onchange = function () {
+        var file = fileInp.files && fileInp.files[0];
+        if (!file) return;
+        App.toast('⏳ กำลังอัปโหลดรูปภาพ...');
+        var path = 'announcements/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        sb.storage.from('products').upload(path, file, { contentType: file.type }).then(function (r) {
+          if (r.error) return blobToDataUrl(file);
+          return sb.storage.from('products').getPublicUrl(path).data.publicUrl;
+        }).catch(function () {
+          return blobToDataUrl(file);
+        }).then(function (url) {
+          $('#maInputImage').value = url;
+          if (prevBox && prevImg) {
+            prevImg.src = url;
+            prevBox.style.display = 'block';
+          }
+          App.toast('✅ อัปโหลดรูปภาพสำเร็จ');
+        });
+      };
+    }
+
+    modal.classList.add('open');
+  }
+
+  function previewAnnounceModal(ann) {
+    var modal = $('#mPreviewAnnounce');
+    var container = $('#prevAnnContainer');
+    if (!modal || !container) return;
+
+    var typeName = typeBadgeMap[ann.type] || '📢 ข่าวสาร';
+    var badgeText = ann.badge || typeName;
+    var timerText = ann.ends_at ? '⏳ แสดงถึง: ' + App.fmtTime(ann.ends_at) : '⏳ แสดงต่อเนื่อง';
+    var mediaHtml = ann.image_url ? '<div class="ann-media"><img src="' + esc(ann.image_url) + '" alt=""></div>' : '';
+    var actHtml = ann.link_url ? '<div class="ann-actions"><a href="' + esc(ann.link_url) + '" class="btn sm" target="_blank" rel="noopener">' + esc(ann.link_text || '👉 ดูรายละเอียดเพิ่มเติม') + '</a></div>' : '';
+
+    var contentHtml = esc(ann.content || '').replace(/\n/g, '<br>');
+
+    container.innerHTML =
+      '<div class="announcement-card type-' + (ann.type || 'info') + '">' +
+        '<div class="ann-head">' +
+          '<div class="ann-badge-group">' +
+            '<span class="ann-badge">' + esc(badgeText) + '</span>' +
+            '<span class="ann-timer">' + esc(timerText) + '</span>' +
+          '</div>' +
+          '<div class="ann-controls">' +
+            '<button type="button" class="ann-close" style="pointer-events:none">&times;</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ann-body">' +
+          mediaHtml +
+          '<div class="ann-content-col">' +
+            '<h3 class="ann-title">' + esc(ann.title) + '</h3>' +
+            '<div class="ann-desc">' + contentHtml + '</div>' +
+            actHtml +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    modal.classList.add('open');
+  }
+
   $('#lb').onclick = function () { this.classList.remove('open'); };
+  var maForm = $('#maForm');
+  if (maForm) {
+    maForm.onsubmit = function (e) {
+      e.preventDefault();
+      var btn = $('#maSaveBtn');
+      if (btn) btn.disabled = true;
+
+      var payload = {
+        id: $('#maInputId').value || undefined,
+        title: $('#maInputTitle').value,
+        type: $('#maInputType').value,
+        badge: $('#maInputBadge').value,
+        content: $('#maInputContent').value,
+        image_url: $('#maInputImage').value,
+        link_url: $('#maInputLink').value,
+        link_text: $('#maInputLinkText').value,
+        starts_at: fromDatetimeLocal($('#maInputStartsAt').value) || new Date().toISOString(),
+        ends_at: fromDatetimeLocal($('#maInputEndsAt').value),
+        priority: Number($('#maInputPriority').value) || 0,
+        is_active: $('#maInputActive').checked
+      };
+
+      App.saveAnnouncement(payload).then(function () {
+        if (btn) btn.disabled = false;
+        $('#mAnnounce').classList.remove('open');
+        App.toast('✅ บันทึกประกาศเรียบร้อยแล้ว!');
+        if (st.tab === 'announcements') loadAnnouncements();
+      }).catch(function (err) {
+        if (btn) btn.disabled = false;
+        App.toast(err.message || 'บันทึกไม่สำเร็จ', true);
+      });
+    };
+  }
   var mfc = $('#mFullChat');
   if (mfc) {
     mfc.addEventListener('click', function (e) {

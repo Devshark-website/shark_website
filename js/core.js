@@ -485,6 +485,8 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.server_status' }, function (p) {
         if (p.new && p.new.value) applyServerStatus(p.new.value);
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, function () { emit('announcement_change'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.announcements' }, function () { emit('announcement_change'); })
       .subscribe();
 
     syncServerStatus();
@@ -814,6 +816,7 @@
     activeTicket: null,
     ticketMsgs: [],
     ticketChan: null,
+    ticketPollTimer: null,
     unread: 0,
     seenAiIds: {}
   };
@@ -947,7 +950,7 @@
         '<div class="ticket-body">' + msgsHtml + '</div>';
 
       var bBtn = $('#tBackBtn');
-      if (bBtn) bBtn.onclick = function () { C.activeTicket = null; renderChat(); };
+      if (bBtn) bBtn.onclick = function () { stopTicketPoll(); C.activeTicket = null; renderChat(); };
       var cBtn = $('#tCloseBtn');
       if (cBtn) cBtn.onclick = function () { closeActiveTicket(); };
       var dBtn = $('#tDeleteBtn');
@@ -1026,6 +1029,66 @@
     });
   }
 
+  function stopTicketPoll() {
+    if (C.ticketPollTimer) {
+      clearInterval(C.ticketPollTimer);
+      C.ticketPollTimer = null;
+    }
+  }
+
+  function startTicketPoll(tId) {
+    stopTicketPoll();
+    if (!tId || !configured) return;
+    // Fast polling: ตรวจสอบข้อความใหม่ทุก 1.2 วินาที เพื่อการรับส่งที่เร็วฉับไว
+    C.ticketPollTimer = setInterval(function () {
+      if (document.hidden) return;
+      if (C.mode !== 'ticket' || !C.activeTicket || C.activeTicket.id !== tId) {
+        stopTicketPoll();
+        return;
+      }
+      pollNewTicketMessages(tId);
+    }, 1200);
+  }
+
+  function pollNewTicketMessages(tId) {
+    if (!tId || !configured) return;
+    var maxId = 0;
+    for (var i = 0; i < C.ticketMsgs.length; i++) {
+      var mid = Number(C.ticketMsgs[i].id);
+      if (!isNaN(mid) && mid > maxId) maxId = mid;
+    }
+    var q = sb.from('ticket_messages').select('*').eq('ticket_id', tId);
+    if (maxId > 0) q = q.gt('id', maxId);
+    q.order('created_at', { ascending: true }).limit(50).then(function (res) {
+      var rows = (res && res.data) || [];
+      if (!rows.length) return;
+      var changed = false;
+      rows.forEach(function (m) {
+        var strId = String(m.id);
+        var idx = C.ticketMsgs.findIndex(function (x) {
+          if (x.id && String(x.id) === strId) return true;
+          if (x._pending && x.message === m.message && x.sender === m.sender) return true;
+          return false;
+        });
+        if (idx !== -1) {
+          C.ticketMsgs[idx] = m;
+          changed = true;
+        } else {
+          C.ticketMsgs.push(m);
+          changed = true;
+        }
+      });
+      if (changed) {
+        C.ticketMsgs.sort(function (a, b) {
+          var ta = new Date(a.created_at || 0).getTime() || 0;
+          var tb = new Date(b.created_at || 0).getTime() || 0;
+          return ta - tb;
+        });
+        renderChat();
+      }
+    }).catch(function () {});
+  }
+
   function openTicketById(tId) {
     if (!tId || !configured) return;
     sb.from('tickets').select('*').eq('id', tId).maybeSingle().then(function (r) {
@@ -1034,6 +1097,7 @@
         C.mode = 'ticket';
         loadTicketMessages(tId);
         subActiveTicket(tId);
+        startTicketPoll(tId);
       }
     });
   }
@@ -1041,7 +1105,28 @@
   function loadTicketMessages(tId) {
     if (!configured) return;
     sb.from('ticket_messages').select('*').eq('ticket_id', tId).order('created_at', { ascending: true }).limit(100).then(function (r) {
-      C.ticketMsgs = (r && r.data) || [];
+      var rows = (r && r.data) || [];
+      var seenIds = new Set();
+      var combined = [];
+      rows.forEach(function (m) {
+        var sid = String(m.id);
+        if (!seenIds.has(sid)) {
+          seenIds.add(sid);
+          combined.push(m);
+        }
+      });
+      // คงข้อความที่กำลังส่ง (Optimistic / Pending) ที่ฐานข้อมูลยังไม่ได้ส่งกลับมา
+      C.ticketMsgs.forEach(function (m) {
+        if (m._pending && !rows.some(function (x) { return x.message === m.message && x.sender === m.sender; })) {
+          combined.push(m);
+        }
+      });
+      combined.sort(function (a, b) {
+        var ta = new Date(a.created_at || 0).getTime() || 0;
+        var tb = new Date(b.created_at || 0).getTime() || 0;
+        return ta - tb;
+      });
+      C.ticketMsgs = combined;
       renderChat();
     });
   }
@@ -1051,11 +1136,24 @@
     C.ticketChan = sb.channel('ticket-live-' + tId)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: 'ticket_id=eq.' + tId }, function (p) {
         if (p.new) {
-          var exists = C.ticketMsgs.some(function (x) { return x.id === p.new.id; });
-          if (!exists) {
+          var strId = String(p.new.id);
+          var idx = C.ticketMsgs.findIndex(function (x) {
+            if (x.id && String(x.id) === strId) return true;
+            // จับคู่กับข้อความ optimistic ที่ผู้ใช้เพิ่งพิมพ์ส่งไป เพื่อแทนที่ ไม่ให้แสดงซ้ำ 2 รอบ!
+            if (x._pending && x.message === p.new.message && x.sender === p.new.sender) return true;
+            return false;
+          });
+          if (idx !== -1) {
+            C.ticketMsgs[idx] = p.new;
+          } else {
             C.ticketMsgs.push(p.new);
-            renderChat();
           }
+          C.ticketMsgs.sort(function (a, b) {
+            var ta = new Date(a.created_at || 0).getTime() || 0;
+            var tb = new Date(b.created_at || 0).getTime() || 0;
+            return ta - tb;
+          });
+          renderChat();
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets', filter: 'id=eq.' + tId }, function (p) {
@@ -1129,16 +1227,27 @@
       toast('Ticket นี้ปิดแล้ว ไม่สามารถส่งข้อความได้ (ดูประวัติได้อย่างเดียว)', true);
       return;
     }
+    var msgText = (q || '').trim();
+    if (!msgText) return;
+
     var uname = (App.profile && App.profile.username) || (App.user && App.user.email) || 'User';
     var tId = C.activeTicket.id;
-    C.ticketMsgs.push({
+    var tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+
+    // Optimistic UI: แสดงข้อความทันที (0ms Latency) พร้อมระบุ _tempId และ _pending
+    var opt = {
+      id: tempId,
+      _tempId: tempId,
+      _pending: true,
       ticket_id: tId,
       sender: 'user',
       sender_name: uname,
       sender_avatar: (App.profile && App.profile.discord_avatar) || '',
-      message: q,
-      source: 'web'
-    });
+      message: msgText,
+      source: 'web',
+      created_at: new Date().toISOString()
+    };
+    C.ticketMsgs.push(opt);
     renderChat();
 
     sb.from('ticket_messages').insert({
@@ -1146,17 +1255,42 @@
       sender: 'user',
       sender_name: uname,
       sender_avatar: (App.profile && App.profile.discord_avatar) || '',
-      message: q,
+      message: msgText,
       source: 'web',
       synced_to_discord: false
-    }).then(function (r) {
-      if (r && r.error) toast(errMsg(r.error), true);
+    }).select('*').maybeSingle().then(function (r) {
+      if (r && r.error) {
+        // หากส่งไม่สำเร็จ ลบ optimistic message ออก
+        var fIdx = C.ticketMsgs.findIndex(function (x) { return x.id === tempId || x._tempId === tempId; });
+        if (fIdx !== -1) {
+          C.ticketMsgs.splice(fIdx, 1);
+          renderChat();
+        }
+        toast(errMsg(r.error), true);
+        return;
+      }
+      if (r && r.data) {
+        // เมื่อได้รับข้อมูลจาก DB ให้แทนที่ optimistic message ด้วยข้อมูลจริง (ป้องกันการแสดงผลซ้ำ 2 รอบ)
+        var idx = C.ticketMsgs.findIndex(function (x) { return x.id === tempId || x._tempId === tempId; });
+        if (idx !== -1) {
+          C.ticketMsgs[idx] = r.data;
+          renderChat();
+        }
+      }
+    }).catch(function (err) {
+      var fIdx = C.ticketMsgs.findIndex(function (x) { return x.id === tempId || x._tempId === tempId; });
+      if (fIdx !== -1) {
+        C.ticketMsgs.splice(fIdx, 1);
+        renderChat();
+      }
+      toast(errMsg(err), true);
     });
   }
 
   function closeActiveTicket() {
     if (!C.activeTicket) return;
     if (!confirm('ยืนยันการปิด Ticket นี้?\nเมื่อปิดแล้วจะไม่สามารถพิมพ์ข้อความได้ แต่ยังสามารถดูประวัติและลบประวัติแชทได้')) return;
+    stopTicketPoll();
     var tId = C.activeTicket.id;
     sb.from('tickets').update({
       status: 'closed',
@@ -1174,6 +1308,7 @@
     var tId = targetTicketId || (C.activeTicket && C.activeTicket.id);
     if (!tId) return;
     if (!confirm('ยืนยันการลบประวัติแชทของ Ticket นี้หรือไม่?\nข้อความทั้งหมดจะถูกลบถาวร ไม่สามารถกู้คืนได้')) return;
+    stopTicketPoll();
 
     sb.from('ticket_messages').delete().eq('ticket_id', tId).then(function () {
       return sb.from('tickets').update({ status: 'closed', closed_by: 'delete_requested' }).eq('id', tId);
@@ -1366,6 +1501,7 @@
       };
     }
     $('#chatClose').onclick = function () {
+      stopTicketPoll();
       win.classList.remove('open');
       var bub = $('#mateBub');
       if (bub && !bub.dataset.dismissed) bub.classList.add('on');
@@ -1398,11 +1534,19 @@
     }
     $$('[data-cmode]').forEach(function (b) {
       b.onclick = function () {
+        if (C.mode === 'ticket' && b.dataset.cmode !== 'ticket') {
+          stopTicketPoll();
+        }
         C.mode = b.dataset.cmode;
         if (C.mode === 'admin') loadAdminChat();
         if (C.mode === 'ticket') loadUserTickets();
         renderChat();
       };
+    });
+    window.addEventListener('focus', function () {
+      if (C.mode === 'ticket' && C.activeTicket && C.activeTicket.id) {
+        pollNewTicketMessages(C.activeTicket.id);
+      }
     });
     $$('[data-cq]').forEach(function (b) {
       b.onclick = function () {
@@ -1455,4 +1599,176 @@
       }
     });
   }
+
+  /* ------------------------------------------------------------------ ระบบประกาศหน้าเว็บ (Announcements System API) */
+  App.getAnnouncements = function () {
+    if (!configured) return Promise.resolve([]);
+    return sb.from('announcements')
+      .select('*')
+      .order('priority', { ascending: false })
+      .order('starts_at', { ascending: false })
+      .order('created_at', { ascending: false })
+      .then(function (res) {
+        if (res && res.error) {
+          return getAppSettingsAnnouncements();
+        }
+        return (res && res.data) || [];
+      }).catch(function () {
+        return getAppSettingsAnnouncements();
+      });
+  };
+
+  App.saveAnnouncement = function (item) {
+    if (!configured) return Promise.reject(new Error('Not configured'));
+    var nowIso = new Date().toISOString();
+    var payload = {
+      title: (item.title || '').trim(),
+      content: (item.content || '').trim(),
+      type: item.type || 'info',
+      badge: (item.badge || '').trim(),
+      image_url: (item.image_url || '').trim(),
+      link_url: (item.link_url || '').trim(),
+      link_text: (item.link_text || '').trim(),
+      is_active: item.is_active !== false,
+      priority: Number(item.priority) || 0,
+      starts_at: item.starts_at || nowIso,
+      ends_at: item.ends_at || null,
+      updated_at: nowIso
+    };
+
+    if (item.id && !String(item.id).startsWith('local_')) {
+      return sb.from('announcements').update(payload).eq('id', item.id).select('*').maybeSingle().then(function (r) {
+        if (r && r.error) {
+          return updateAnnouncementInAppSettings(item.id, payload);
+        }
+        emit('announcement_change');
+        return r && r.data;
+      }).catch(function () {
+        return updateAnnouncementInAppSettings(item.id, payload);
+      });
+    } else {
+      payload.created_at = nowIso;
+      return sb.from('announcements').insert(payload).select('*').maybeSingle().then(function (r) {
+        if (r && r.error) {
+          return insertAnnouncementInAppSettings(payload);
+        }
+        emit('announcement_change');
+        return r && r.data;
+      }).catch(function () {
+        return insertAnnouncementInAppSettings(payload);
+      });
+    }
+  };
+
+  App.deleteAnnouncement = function (id) {
+    if (!id || !configured) return Promise.reject(new Error('No ID'));
+    return sb.from('announcements').delete().eq('id', id).then(function (r) {
+      if (r && r.error) {
+        return deleteAnnouncementFromAppSettings(id);
+      }
+      emit('announcement_change');
+      return true;
+    }).catch(function () {
+      return deleteAnnouncementFromAppSettings(id);
+    });
+  };
+
+  function getAppSettingsAnnouncements() {
+    return sb.from('app_settings').select('value').eq('key', 'announcements').maybeSingle().then(function (res) {
+      if (res && res.data && res.data.value) {
+        try { return JSON.parse(res.data.value) || []; } catch (e) {}
+      }
+      return [];
+    }).catch(function () { return []; });
+  }
+
+  function saveAppSettingsAnnouncements(list) {
+    var str = JSON.stringify(list || []);
+    return sb.from('app_settings').upsert({ key: 'announcements', value: str, updated_at: new Date().toISOString() }).then(function () {
+      emit('announcement_change');
+    });
+  }
+
+  function insertAnnouncementInAppSettings(payload) {
+    return getAppSettingsAnnouncements().then(function (list) {
+      payload.id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      list.unshift(payload);
+      return saveAppSettingsAnnouncements(list).then(function () { return payload; });
+    });
+  }
+
+  function updateAnnouncementInAppSettings(id, payload) {
+    return getAppSettingsAnnouncements().then(function (list) {
+      var idx = list.findIndex(function (x) { return String(x.id) === String(id); });
+      if (idx !== -1) {
+        payload.id = id;
+        list[idx] = Object.assign({}, list[idx], payload);
+      } else {
+        payload.id = id;
+        list.unshift(payload);
+      }
+      return saveAppSettingsAnnouncements(list).then(function () { return payload; });
+    });
+  }
+
+  function deleteAnnouncementFromAppSettings(id) {
+    return getAppSettingsAnnouncements().then(function (list) {
+      var filtered = list.filter(function (x) { return String(x.id) !== String(id); });
+      return saveAppSettingsAnnouncements(filtered).then(function () { return true; });
+    });
+  }
+
+  /* คัดกรองและเรียงลำดับประกาศ: แยก active, scheduled, expired และคำนวณเวลาที่ประกาศปัจจุบันจะหมดอายุเพื่อแทนที่ด้วยประกาศถัดไป */
+  App.filterAnnouncements = function (allList) {
+    var now = new Date();
+    var list = (allList || []).slice();
+
+    // เรียง priority สูงสุดก่อน แล้วตามด้วยวันที่สร้างล่าสุด
+    list.sort(function (a, b) {
+      var pa = Number(a.priority) || 0, pb = Number(b.priority) || 0;
+      if (pa !== pb) return pb - pa;
+      var ta = new Date(a.starts_at || a.created_at || 0).getTime() || 0;
+      var tb = new Date(b.starts_at || b.created_at || 0).getTime() || 0;
+      return tb - ta;
+    });
+
+    var activeList = [];
+    var scheduledList = [];
+    var expiredList = [];
+    var futureTimestamps = [];
+
+    list.forEach(function (a) {
+      if (!a.is_active) return;
+      var sDate = a.starts_at ? new Date(a.starts_at) : null;
+      var eDate = a.ends_at ? new Date(a.ends_at) : null;
+
+      if (sDate && sDate > now) {
+        scheduledList.push(a);
+        futureTimestamps.push(sDate.getTime());
+      } else if (eDate && eDate <= now) {
+        expiredList.push(a);
+      } else {
+        activeList.push(a);
+        if (eDate) futureTimestamps.push(eDate.getTime());
+      }
+    });
+
+    var nextTransitionMs = null;
+    if (futureTimestamps.length > 0) {
+      futureTimestamps.sort(function (a, b) { return a - b; });
+      var earliest = futureTimestamps[0];
+      var diff = earliest - now.getTime();
+      if (diff > 0 && diff < 86400000 * 30) {
+        nextTransitionMs = diff;
+      }
+    }
+
+    return {
+      activeList: activeList,
+      current: activeList[0] || null,
+      scheduledList: scheduledList,
+      expiredList: expiredList,
+      nextTransitionMs: nextTransitionMs
+    };
+  };
 })();

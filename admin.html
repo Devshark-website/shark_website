@@ -67,6 +67,116 @@
   </div>
 </div>
 
+<!-- modal จัดการประกาศ (สร้าง / แก้ไข) -->
+<div class="modal" id="mAnnounce">
+  <div class="box wide" style="max-width:680px;max-height:90vh;overflow-y:auto;padding:22px">
+    <button class="x" data-close>&times;</button>
+    <h3 id="maTitle" style="margin-bottom:14px">📢 จัดการประกาศหน้าเว็บ</h3>
+    <form id="maForm">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label class="lab" for="maInputTitle">หัวข้อประกาศ <span style="color:var(--bad)">*</span></label>
+          <input class="inp" id="maInputTitle" required placeholder="เช่น โปรโมชั่นต้อนรับวันหยุด ลดกระหน่ำ 20%!" style="width:100%;padding:9px 12px">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="lab" for="maInputType">ประเภทประกาศ</label>
+            <select class="inp" id="maInputType" style="width:100%;padding:9px 12px">
+              <option value="info">📢 ข่าวสารทั่วไป (Info)</option>
+              <option value="promo">🎁 โปรโมชั่นพิเศษ (Promo)</option>
+              <option value="alert">⚡ ประกาศสำคัญ / ด่วน (Alert)</option>
+              <option value="event">🎉 กิจกรรมพิเศษ (Event)</option>
+              <option value="update">🛠️ อัปเดตระบบ (Update)</option>
+            </select>
+          </div>
+          <div>
+            <label class="lab" for="maInputBadge">ป้ายกำกับ (Badge)</label>
+            <input class="inp" id="maInputBadge" placeholder="เช่น 🔥 HOT, 🎁 PROMO, NEW" style="width:100%;padding:9px 12px">
+          </div>
+        </div>
+
+        <div>
+          <label class="lab" for="maInputContent">เนื้อหาประกาศ <span style="color:var(--bad)">*</span></label>
+          <textarea class="inp" id="maInputContent" required rows="4" placeholder="พิมพ์รายละเอียดประกาศ (รองรับการขึ้นบรรทัดใหม่ และใส่ลิงก์ URL ได้)..." style="width:100%;padding:10px 12px;resize:vertical"></textarea>
+        </div>
+
+        <div>
+          <label class="lab">รูปภาพแบนเนอร์ประกอบ (ถ้ามี)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="inp" id="maInputImage" placeholder="URL รูปภาพ เช่น https://... หรือกดอัปโหลดจากเครื่อง" style="flex:1;padding:9px 12px">
+            <label class="btn xs ghost" style="cursor:pointer;white-space:nowrap;padding:9px 12px">
+              📂 เลือกรูป
+              <input type="file" id="maFileImage" accept="image/*" style="display:none">
+            </label>
+          </div>
+          <div id="maImagePreview" style="margin-top:8px;max-height:160px;overflow:hidden;border-radius:10px;display:none">
+            <img id="maImgPrev" alt="Preview" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="lab" for="maInputLink">ลิงก์ปลายทางเมื่อคลิก (Link URL)</label>
+            <input class="inp" id="maInputLink" placeholder="เช่น category.html?c=topup หรือ https://..." style="width:100%;padding:9px 12px">
+          </div>
+          <div>
+            <label class="lab" for="maInputLinkText">ข้อความบนปุ่ม (Button Text)</label>
+            <input class="inp" id="maInputLinkText" placeholder="เช่น 👉 ดูโปรโมชั่นทันที" style="width:100%;padding:9px 12px">
+          </div>
+        </div>
+
+        <div style="background:rgba(56,232,255,.06);border:1px solid rgba(56,232,255,.2);border-radius:12px;padding:12px">
+          <div style="font-weight:700;font-size:.88rem;color:var(--cyan);margin-bottom:8px">⏱️ กำหนดเวลาแสดงผล & สลับแทนที่อัตโนมัติ</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="lab" for="maInputStartsAt" style="font-size:.8rem">วัน-เวลาเริ่มแสดง (Starts At)</label>
+              <input class="inp" id="maInputStartsAt" type="datetime-local" style="width:100%;padding:8px 10px;font-size:.85rem">
+              <small class="mute" style="font-size:.72rem">ปล่อยว่างได้ (จะเริ่มทันที)</small>
+            </div>
+            <div>
+              <label class="lab" for="maInputEndsAt" style="font-size:.8rem;color:#fca5a5">วัน-เวลาที่ประกาศจะหาย (Ends At / หมดอายุ) *</label>
+              <input class="inp" id="maInputEndsAt" type="datetime-local" style="width:100%;padding:8px 10px;font-size:.85rem">
+              <small class="mute" style="font-size:.72rem">เมื่อถึงเวลานี้ ประกาศจะหายและสลับเอาประกาศถัดไปที่ตั้งไว้ขึ้นมาแทนที่ทันที</small>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center">
+          <div>
+            <label class="lab" for="maInputPriority">ลำดับความสำคัญ (Priority)</label>
+            <input class="inp" id="maInputPriority" type="number" value="0" step="1" style="width:100%;padding:8px 10px">
+            <small class="mute" style="font-size:.72rem">เลขยิ่งมากยิ่งขึ้นก่อน (เช่น 10 มาก่อน 5)</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding-top:14px">
+            <input type="checkbox" id="maInputActive" checked style="width:20px;height:20px;accent-color:var(--cyan);cursor:pointer">
+            <label for="maInputActive" style="font-weight:600;cursor:pointer">เปิดใช้งานประกาศนี้ (Active)</label>
+          </div>
+        </div>
+
+        <input type="hidden" id="maInputId">
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+          <button type="button" class="btn ghost" data-close>ยกเลิก</button>
+          <button type="submit" class="btn ok" id="maSaveBtn">💾 บันทึกประกาศ</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- modal ดูตัวอย่างประกาศบนหน้าเว็บ (Live Preview) -->
+<div class="modal" id="mPreviewAnnounce">
+  <div class="box wide" style="max-width:760px;padding:22px">
+    <button class="x" data-close>&times;</button>
+    <h3 style="margin-bottom:14px">👁️ ตัวอย่างการแสดงผลบนหน้า index.html</h3>
+    <div id="prevAnnContainer" style="padding:10px 0"></div>
+    <div style="text-align:right;margin-top:14px">
+      <button type="button" class="btn ghost" data-close>ปิดตัวอย่าง</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/store.js"></script>

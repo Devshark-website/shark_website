@@ -144,6 +144,34 @@
 
     <div class="mq"><div class="mqt" id="mq"></div></div>
 
+    <!-- ระบบประกาศหน้าเว็บ (Announcement System) -->
+    <section id="announcementSection" class="announcement-wrap hide">
+      <div class="announcement-card" id="annCard">
+        <div class="ann-head">
+          <div class="ann-badge-group">
+            <span class="ann-badge" id="annBadge">📢 ประกาศ</span>
+            <span class="ann-timer" id="annTimer">⏳ กำลังแสดง</span>
+          </div>
+          <div class="ann-controls">
+            <div class="ann-dots hide" id="annDots"></div>
+            <button type="button" class="ann-close" id="annCloseBtn" title="ปิดประกาศ" aria-label="Close">&times;</button>
+          </div>
+        </div>
+        <div class="ann-body">
+          <div class="ann-media hide" id="annMedia">
+            <img id="annImg" alt="รูปภาพประกาศ" loading="lazy">
+          </div>
+          <div class="ann-content-col">
+            <h3 class="ann-title" id="annTitle"></h3>
+            <div class="ann-desc" id="annDesc"></div>
+            <div class="ann-actions hide" id="annActions">
+              <a href="#" class="btn sm" id="annLinkBtn"></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- สถานะร้านค้า & แอดมินออนไลน์ (Realtime Status) -->
     <section id="liveStatusSection" style="margin: 18px 0 24px;">
       <div class="status-card" id="statusCard">

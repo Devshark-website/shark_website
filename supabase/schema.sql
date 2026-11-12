@@ -200,6 +200,27 @@ create table if not exists public.app_settings (
   updated_at  timestamptz not null default now()
 );
 
+-- ระบบประกาศหน้าเว็บ (Announcements System)
+-- รองรับการตั้งประกาศ, กำหนดวันหมดอายุ (เมื่อหมดอายุจะถูกแทนที่ด้วยประกาศถัดไปที่ตั้งไว้), ป้ายกำกับ, รูปภาพ, ลิงก์
+create table if not exists public.announcements (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null,
+  content     text not null default '',
+  type        text not null default 'info' check (type in ('info', 'promo', 'alert', 'event', 'update')),
+  badge       text not null default '',
+  image_url   text not null default '',
+  link_url    text not null default '',
+  link_text   text not null default '',
+  is_active   boolean not null default true,
+  priority    integer not null default 0,
+  starts_at   timestamptz not null default now(),
+  ends_at     timestamptz,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists idx_announcements_active on public.announcements(is_active, starts_at, ends_at);
+create index if not exists idx_announcements_priority on public.announcements(priority desc, starts_at desc);
+
 -- ระบบ Ticket ประสานงานหน้าเว็บ & Discord Bot
 create table if not exists public.tickets (
   id                  uuid primary key default gen_random_uuid(),
@@ -1212,15 +1233,24 @@ alter table public.admin_logs    enable row level security;
 alter table public.support_chats enable row level security;
 alter table public.account_alerts enable row level security;
 alter table public.app_settings   enable row level security;
+alter table public.announcements  enable row level security;
 
 drop policy if exists "account_alerts admin" on public.account_alerts;
 create policy "account_alerts admin" on public.account_alerts for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 drop policy if exists "app_settings admin"   on public.app_settings;
 drop policy if exists "app_settings read public" on public.app_settings;
 create policy "app_settings admin"   on public.app_settings   for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
-create policy "app_settings read public" on public.app_settings for select to anon, authenticated using (key = 'server_status');
+create policy "app_settings read public" on public.app_settings for select to anon, authenticated using (key in ('server_status', 'announcements'));
 revoke all on public.account_alerts, public.app_settings from anon;
 grant select on public.app_settings to anon, authenticated;
+
+-- สิทธิ์ระบบประกาศ (Announcements): บุคคลทั่วไปอ่านประกาศที่เปิดใช้งานได้, แอดมินจัดการได้ทั้งหมด
+drop policy if exists "announcements read" on public.announcements;
+create policy "announcements read" on public.announcements for select to anon, authenticated using (true);
+drop policy if exists "announcements admin" on public.announcements;
+create policy "announcements admin" on public.announcements for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+grant select on public.announcements to anon, authenticated;
+grant all on public.announcements to authenticated;
 
 drop policy if exists "profiles read own"    on public.profiles;
 drop policy if exists "profiles admin del"   on public.profiles;
@@ -1482,6 +1512,7 @@ begin
   begin alter publication supabase_realtime add table public.account_alerts; exception when others then null; end;
   begin alter publication supabase_realtime add table public.tickets; exception when others then null; end;
   begin alter publication supabase_realtime add table public.ticket_messages; exception when others then null; end;
+  begin alter publication supabase_realtime add table public.announcements; exception when others then null; end;
 end $$;
 
 -- =====================================================================
